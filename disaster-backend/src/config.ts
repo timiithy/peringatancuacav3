@@ -24,14 +24,14 @@ export const ACKS_STREAM = process.env.ACKS_STREAM ?? "alerts:acks";
 export const REPORT_SYNC_STREAM = process.env.REPORT_SYNC_STREAM ?? "reports:sync";
 export const REPORT_DEDUPE_PREFIX = process.env.REPORT_DEDUPE_PREFIX ?? "reports:dedupe";
 export const REPORT_WINDOW_MS = Number(process.env.REPORT_WINDOW_MS ?? 24 * 60 * 60 * 1000);
-export const REPORT_THRESHOLD = Number(process.env.REPORT_THRESHOLD ?? 5);
+export const REPORT_THRESHOLD = Number(process.env.REPORT_THRESHOLD ?? 1);
 
 export const BEACH_THRESHOLDS: Record<string, number> = {
-	pantai_lampuuk: 5,
-	pantai_ulee_lheue: 5,
-	pantai_depok: 5,
-	pantai_samas: 5,
-	pantai_lhoknga: 5,
+	pantai_lampuuk: 1,
+	pantai_ulee_lheue: 1,
+	pantai_depok: 1,
+	pantai_samas: 1,
+	pantai_lhoknga: 1,
 };
 export const ACTIVE_WARNING_TTL_SECONDS = Number(process.env.ACTIVE_WARNING_TTL_SECONDS ?? 12 * 60 * 60); // 12 hours
 
