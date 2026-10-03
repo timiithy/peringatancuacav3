@@ -20,6 +20,8 @@ type ReassuranceResult = {
 	details: Record<string, unknown>;
 };
 
+export type WarningLevel = "NORMAL" | "WASPADA" | "SIAGA" | "EKSTREM";
+
 function determineBmkgRisk(weather: { windSpeed: number | null } | null, hasWarning: boolean): string {
 	if (!weather) return "UNKNOWN";
 
@@ -30,47 +32,47 @@ function determineBmkgRisk(weather: { windSpeed: number | null } | null, hasWarn
 	return "LOW";
 }
 
-type FinalLevel = "NORMAL" | "WASPADA" | "SIAGA" | "EKSTREM";
-
-const LIK_LEVEL_MAP: Record<string, number> = {
-	"NORMAL": 0,
-	"WASPADA": 1,
-	"SIAGA": 2,
-	"EKSTREM": 3,
-	"ACTIONABLE": 2,
-	"HIGH": 2,
-	"UNSAFE": 2,
-	"MEDIUM": 1,
-	"LOW": 0,
-};
-
-const BMKG_LEVEL_MAP: Record<string, number> = {
-	"HIGH": 2,
-	"MEDIUM": 1,
-	"LOW": 0,
-	"UNKNOWN": 0,
-};
-
-const LEVEL_MAP: Record<number, FinalLevel> = {
+const LEVEL_MAP: Record<number, WarningLevel> = {
 	0: "NORMAL",
 	1: "WASPADA",
 	2: "SIAGA",
 	3: "EKSTREM",
 };
 
-function fusionDecision(
+const BMKG_LEVEL_MAP: Record<string, number> = {
+	"NORMAL": 0,
+	"WASPADA": 1,
+	"SIAGA": 2,
+	"EKSTREM": 3,
+	"HIGH": 2,
+	"MEDIUM": 1,
+	"LOW": 0,
+	"UNKNOWN": 0,
+};
+
+function getVillagerLevel(risk: string, isMultisign: boolean): number {
+	const normalizedRisk = risk.toUpperCase();
+	if (normalizedRisk === "ACTIONABLE") return isMultisign ? 2 : 1;
+	if (normalizedRisk === "EKSTREM") return 3;
+	if (normalizedRisk === "SIAGA" || normalizedRisk === "HIGH" || normalizedRisk === "UNSAFE") return 2;
+	if (normalizedRisk === "WASPADA" || normalizedRisk === "MEDIUM") return 1;
+	return 0;
+}
+
+export function decideWarningLevel(
 	shapRisk: string,
 	bmkgRisk: string,
-): { finalLevel: FinalLevel; finalLevelNumeric: number; agreed: boolean } {
-	const likLevel = LIK_LEVEL_MAP[shapRisk.toUpperCase()] ?? 0;
+	isMultisign = false,
+): { finalLevel: WarningLevel; finalLevelNumeric: number; agreed: boolean } {
+	const villagerLevel = getVillagerLevel(shapRisk, isMultisign);
 	const bmkgLevel = BMKG_LEVEL_MAP[bmkgRisk.toUpperCase()] ?? 0;
 
-	const score = Math.max(likLevel, bmkgLevel);
+	const score = Math.max(villagerLevel, bmkgLevel);
 
-	const agreed = likLevel === bmkgLevel;
+	const agreed = villagerLevel === bmkgLevel;
 
 	return {
-		finalLevel: LEVEL_MAP[score],
+		finalLevel: LEVEL_MAP[score] ?? "NORMAL",
 		finalLevelNumeric: score,
 		agreed,
 	};
@@ -81,6 +83,7 @@ export async function reassure(
 	reportId: string,
 	shapResult: ShapResult,
 	beachSlug: string,
+	isMultisign = false,
 ): Promise<ReassuranceResult> {
 	const db = getDb();
 
@@ -100,7 +103,7 @@ export async function reassure(
 	const shapRisk = shapResult.riskLevel.toUpperCase();
 	const bmkgRisk = determineBmkgRisk(weather, !!warning);
 
-	const { finalLevel, finalLevelNumeric, agreed } = fusionDecision(shapRisk, bmkgRisk);
+	const { finalLevel, finalLevelNumeric, agreed } = decideWarningLevel(shapRisk, bmkgRisk, isMultisign);
 
 	const result: ReassuranceResult = {
 		shapRisk,

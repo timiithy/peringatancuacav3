@@ -3,7 +3,7 @@ import { redis } from "../lib/redis";
 import { sendOpenClawAlert } from "../lib/openclaw";
 import { processReport, getActiveWarning, setActiveWarning, getReportTimeRange, resetQueues } from "../lib/crowdsource";
 import { persistReport, persistShapPrediction } from "../lib/bmkg";
-import { reassure } from "../lib/reassurance";
+import { decideWarningLevel, reassure } from "../lib/reassurance";
 import { publishIotAlertForEvent } from "../lib/iot-mqtt";
 import {
 	ALERTS_CHANNEL,
@@ -119,6 +119,7 @@ route.get("/report/submit", async (c) => {
 	}
 
 	const result = (await mlRes.json()) as MlResult;
+	const isMultisign = triggeredCodes.length > 1;
 
 	let reassuranceResult: Record<string, unknown> | null = null;
 	try {
@@ -143,19 +144,19 @@ route.get("/report/submit", async (c) => {
 			validatedSigns: result.triggered_lik_codes ?? triggeredCodes,
 			actions: result.action_recommendation ? [result.action_recommendation] : [],
 			rawResponse: result as unknown as Record<string, unknown>,
-		}, beachLocation);
+		}, beachLocation, isMultisign);
 		reassuranceResult = reassured as unknown as Record<string, unknown>;
 	} catch (dbErr) {
 		console.error("[report-submit] SQLite persistence failed (non-blocking, alert still distributed via fail-safe level):", dbErr);
 	}
 
-	const isMultisign = triggeredCodes.length > 1;
 	const isActionable = result.community_characteristics === "Actionable";
 	// Fail safe if fusion/persistence failed: escalate actionable signs rather than
 	// silently downgrading to NORMAL (which would suppress the alert and the buzzer).
 	const reassuranceFinalLevel =
 		(reassuranceResult?.finalLevel as string) ??
-		(isActionable ? (isMultisign ? "SIAGA" : "WASPADA") : "NORMAL");
+		decideWarningLevel(result.community_characteristics, "NORMAL", isMultisign).finalLevel;
+	const shouldDistribute = reassuranceFinalLevel !== "NORMAL";
 	const riskLevel = reassuranceFinalLevel.toLowerCase();
 	const reporterCount = Object.values(codeCounts).reduce((sum, count) => sum + count, 0);
 	const timeRange = await getReportTimeRange(beachLocation, triggeredCodes);
@@ -181,7 +182,7 @@ route.get("/report/submit", async (c) => {
 			is_multisign: isMultisign,
 			is_actionable: isActionable,
 			final_risk_level: reassuranceFinalLevel,
-			shouldDistribute: reassuranceFinalLevel !== "NORMAL",
+			shouldDistribute,
 		},
 		input: mlPayload,
 		ml: result,
@@ -196,7 +197,7 @@ route.get("/report/submit", async (c) => {
 
 	const alertJson = JSON.stringify(alertEvent);
 
-	if (isWA) {
+	if (isWA && shouldDistribute) {
 		await redis.xAdd("experiments:triggers", "*", {
 			experimentId: "untagged",
 			channel: normalizedChannel,
@@ -241,7 +242,7 @@ route.get("/report/submit", async (c) => {
 		reportId,
 		serverTimestamp,
 		status: "triggered",
-		shouldDistribute: true,
+		shouldDistribute,
 		alertEvent,
 		reportCounts: codeCounts,
 	});

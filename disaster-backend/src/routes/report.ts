@@ -3,7 +3,7 @@ import { redis } from "../lib/redis";
 import { sendOpenClawAlert } from "../lib/openclaw";
 import { processReport, getActiveWarning, setActiveWarning, getReportTimeRange, resetQueues } from "../lib/crowdsource";
 import { persistReport, persistShapPrediction } from "../lib/bmkg";
-import { reassure } from "../lib/reassurance";
+import { decideWarningLevel, reassure } from "../lib/reassurance";
 import { publishIotAlertForEvent } from "../lib/iot-mqtt";
 import { checkReportRateLimit, getClientIp } from "../lib/rate-limit";
 import {
@@ -311,6 +311,7 @@ route.post("/report", async (c) => {
 
 		const isWA = input._channel === "WA";
 		const channel = isWA ? "WHATSAPP" : (input._channel ?? "PWA");
+		const isMultisign = triggeredCodes.length > 1;
 
 		let reassuranceResult: Record<string, unknown> | null = null;
 		try {
@@ -335,20 +336,19 @@ route.post("/report", async (c) => {
 				validatedSigns: result.triggered_lik_codes ?? triggeredCodes,
 				actions: result.action_recommendation ? [result.action_recommendation] : [],
 				rawResponse: result as unknown as Record<string, unknown>,
-			}, beachLocation);
+			}, beachLocation, isMultisign);
 			reassuranceResult = reassured as unknown as Record<string, unknown>;
 		} catch (dbErr) {
 			console.error("[report] SQLite persistence failed (non-blocking, alert still distributed via fail-safe level):", dbErr);
 		}
 
-		const isMultisign = triggeredCodes.length > 1;
 		const isActionable = result.community_characteristics === "Actionable";
 		// Prefer the SHAP+BMKG fusion result. If persistence/fusion failed (reassurance
 		// is null), fail safe by escalating actionable signs rather than silently
 		// downgrading to NORMAL (which would suppress the alert and the buzzer).
 		const reassuranceFinalLevel =
 			(reassuranceResult?.finalLevel as string) ??
-			(isActionable ? (isMultisign ? "SIAGA" : "WASPADA") : "NORMAL");
+			decideWarningLevel(result.community_characteristics, "NORMAL", isMultisign).finalLevel;
 		const shouldDistribute = reassuranceFinalLevel !== "NORMAL";
 		const riskLevel = reassuranceFinalLevel.toLowerCase();
 
