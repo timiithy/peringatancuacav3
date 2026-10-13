@@ -227,6 +227,46 @@ describe("POST /api/report", () => {
 		expect(res.status).toBe(400);
 	});
 
+	test("binds device coordinates to the nearest beach", async () => {
+		mockProcessReport.mockResolvedValue({ triggeredCodes: [], codeCounts: { "Wn-1": 1 } });
+		mockXAdd.mockResolvedValue("0-0");
+
+		const res = await app.request("/api/report", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				beach_location: "pantai_samas",
+				latitude: 5.4833,
+				longitude: 95.2333,
+				location_source: "device",
+				lik_codes: ["Wn-1"],
+			}),
+		});
+
+		expect(res.status).toBe(200);
+		expect(mockProcessReport).toHaveBeenCalledWith("pantai_lampuuk", ["Wn-1"], expect.any(Number), expect.any(Number));
+	});
+
+	test("keeps manual beach selection when coordinates are also present", async () => {
+		mockProcessReport.mockResolvedValue({ triggeredCodes: [], codeCounts: { "Wn-1": 1 } });
+		mockXAdd.mockResolvedValue("0-0");
+
+		const res = await app.request("/api/report", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				beach_location: "pantai_samas",
+				latitude: 5.4833,
+				longitude: 95.2333,
+				location_source: "manual",
+				lik_codes: ["Wn-1"],
+			}),
+		});
+
+		expect(res.status).toBe(200);
+		expect(mockProcessReport).toHaveBeenCalledWith("pantai_samas", ["Wn-1"], expect.any(Number), expect.any(Number));
+	});
+
 	test("rejects invalid clientReportId", async () => {
 		const res = await app.request("/api/report", {
 			method: "POST",

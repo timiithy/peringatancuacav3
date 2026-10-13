@@ -5,6 +5,7 @@ import { processReport, getActiveWarning, setActiveWarning, getReportTimeRange, 
 import { persistReport, persistShapPrediction } from "../lib/bmkg";
 import { decideWarningLevel, reassure } from "../lib/reassurance";
 import { publishIotAlertForEvent } from "../lib/iot-mqtt";
+import { findNearestBeach, isValidCoordinates } from "../lib/beach-location";
 import { checkReportRateLimit, getClientIp } from "../lib/rate-limit";
 import {
 	ALERTS_CHANNEL,
@@ -164,10 +165,27 @@ route.post("/report", async (c) => {
 		return c.json({ ok: false, error: "lik_codes required" }, 400);
 	}
 
-	if (typeof input.beach_location !== "string" || input.beach_location.trim().length === 0) {
-		return c.json({ ok: false, error: "beach_location required" }, 400);
+	const suppliedBeachLocation = typeof input.beach_location === "string"
+		? input.beach_location.trim().toLowerCase()
+		: "";
+	const hasCoordinates = typeof input.latitude === "number" && typeof input.longitude === "number";
+	if (!suppliedBeachLocation && !hasCoordinates) {
+		return c.json({ ok: false, error: "beach_location or valid coordinates required" }, 400);
 	}
-	const beachLocation = input.beach_location.trim().toLowerCase();
+	if (hasCoordinates && !isValidCoordinates(input.latitude!, input.longitude!)) {
+		return c.json({ ok: false, error: "latitude and longitude are invalid" }, 400);
+	}
+	if (input.location_source !== undefined && input.location_source !== "device" && input.location_source !== "manual") {
+		return c.json({ ok: false, error: "location_source must be device or manual" }, 400);
+	}
+	if (input.location_accuracy_m !== undefined && (!Number.isFinite(input.location_accuracy_m) || input.location_accuracy_m < 0)) {
+		return c.json({ ok: false, error: "location_accuracy_m must be a non-negative number" }, 400);
+	}
+
+	const nearestBeach = hasCoordinates && input.location_source !== "manual"
+		? findNearestBeach(input.latitude!, input.longitude!)
+		: null;
+	const beachLocation = nearestBeach?.beach.slug ?? suppliedBeachLocation;
 	if (!ALLOWED_BEACH_LOCATIONS.includes(beachLocation as (typeof ALLOWED_BEACH_LOCATIONS)[number])) {
 		return c.json(
 			{

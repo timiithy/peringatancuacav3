@@ -8,9 +8,28 @@ export const ALLOWED_BEACH_LOCATIONS = [
 
 export type BeachLocation = (typeof ALLOWED_BEACH_LOCATIONS)[number];
 
+export type BeachRegistryEntry = {
+	slug: BeachLocation;
+	name: string;
+	latitude: number;
+	longitude: number;
+};
+
+export const BEACH_REGISTRY: readonly BeachRegistryEntry[] = [
+	{ slug: "pantai_lampuuk", name: "Pantai Lampuuk", latitude: 5.4833, longitude: 95.2333 },
+	{ slug: "pantai_lhoknga", name: "Pantai Lhoknga", latitude: 5.4667, longitude: 95.2333 },
+	{ slug: "pantai_ulee_lheue", name: "Pantai Ulee Lheue", latitude: 5.5583, longitude: 95.3083 },
+	{ slug: "pantai_depok", name: "Pantai Depok", latitude: -8.0167, longitude: 110.3167 },
+	{ slug: "pantai_samas", name: "Pantai Samas", latitude: -8.025, longitude: 110.3 },
+];
+
 export type PredictionInput = {
 	lik_codes: string[];
-	beach_location: BeachLocation;
+	beach_location?: BeachLocation;
+	latitude?: number;
+	longitude?: number;
+	location_accuracy_m?: number;
+	location_source?: "device" | "manual";
 	clientReportId?: string;
 	createdAtClient?: number;
 	_experimentId?: string;

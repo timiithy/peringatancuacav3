@@ -29,6 +29,7 @@ import bmkgRoute from "./routes/bmkg";
 import alertsRoute from "./routes/alerts";
 import reportSubmitRoute from "./routes/report-submit";
 import broadcastMorningRoute from "./routes/broadcast-morning";
+import beachesRoute from "./routes/beaches";
 
 const app = new Hono();
 app.use(
@@ -105,6 +106,7 @@ app.route("/api", bmkgRoute);
 app.route("/api", alertsRoute);
 app.route("/api", reportSubmitRoute);
 app.route("/api", broadcastMorningRoute);
+app.route("/api", beachesRoute);
 app.route("/", webRoute);
 
 export default {
