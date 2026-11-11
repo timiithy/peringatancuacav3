@@ -31,7 +31,9 @@ export type PredictionInput = {
 	location_accuracy_m?: number;
 	location_source?: "device" | "manual";
 	clientReportId?: string;
+	reporterBrowserId?: string;
 	createdAtClient?: number;
+	observedAt?: number;
 	_experimentId?: string;
 	is_active_warning?: boolean;
 	active_warning?: string[];

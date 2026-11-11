@@ -330,7 +330,9 @@ const openApiDoc = {
 					lik_codes: { type: "array", items: { type: "string" } },
 					beach_location: { type: "string", enum: ALLOWED_BEACH_LOCATIONS },
 					clientReportId: { type: "string", format: "uuid", nullable: true },
+					reporterBrowserId: { type: "string", format: "uuid", description: "Optional persistent UUID v4 for this browser installation; unverified, separate from the individual report ID. Older payloads remain unattributed." },
 					createdAtClient: { type: "number", nullable: true },
+					observedAt: { type: "number", nullable: true, description: "Observation epoch time in milliseconds. Missing/future timestamps are retained as uncertain history; observations older than LIVE_OBSERVATION_WINDOW_MS are archived without triggering alerts." },
 				},
 			},
 			AckInput: {

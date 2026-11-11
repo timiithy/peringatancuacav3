@@ -24,6 +24,10 @@ export const ACKS_STREAM = process.env.ACKS_STREAM ?? "alerts:acks";
 export const REPORT_SYNC_STREAM = process.env.REPORT_SYNC_STREAM ?? "reports:sync";
 export const REPORT_DEDUPE_PREFIX = process.env.REPORT_DEDUPE_PREFIX ?? "reports:dedupe";
 export const REPORT_WINDOW_MS = Number(process.env.REPORT_WINDOW_MS ?? 24 * 60 * 60 * 1000);
+export const LIVE_OBSERVATION_WINDOW_MS = Number(process.env.LIVE_OBSERVATION_WINDOW_MS ?? 30 * 60 * 1000);
+if (!Number.isFinite(LIVE_OBSERVATION_WINDOW_MS) || LIVE_OBSERVATION_WINDOW_MS <= 0) {
+	throw new Error("LIVE_OBSERVATION_WINDOW_MS must be a positive number");
+}
 export const REPORT_THRESHOLD = Number(process.env.REPORT_THRESHOLD ?? 1);
 
 export const BEACH_THRESHOLDS: Record<string, number> = {
@@ -108,6 +112,9 @@ export const AUTH_USER_IDENTITY_KEY_PREFIX =
 
 export const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL ?? "";
 export const OPENCLAW_HOOK_TOKEN = process.env.OPENCLAW_HOOK_TOKEN ?? "";
+// Inbound relay authentication and persistent pseudonym derivation use separate secrets.
+export const OPENCLAW_WEBHOOK_TOKEN = process.env.OPENCLAW_WEBHOOK_TOKEN ?? "";
+export const REPORTER_HMAC_SECRET = process.env.REPORTER_HMAC_SECRET ?? "";
 export const OPENCLAW_BROADCAST_GROUPS = parseCsvEnv(process.env.OPENCLAW_BROADCAST_GROUPS, []);
 export const WEATHERAPI_KEY = process.env.WEATHERAPI_KEY ?? "";
 

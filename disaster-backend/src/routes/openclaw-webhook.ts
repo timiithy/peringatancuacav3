@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import { redis } from "../lib/redis";
 import { sendOpenClawReply } from "../lib/openclaw";
+import { parseMessageTimestamp } from "../lib/observation-time";
+import { OPENCLAW_WEBHOOK_TOKEN } from "../config";
+import { gatewayAuth } from "../middleware/gatewayAuth";
+import { normalizeWhatsAppSender } from "../lib/reporter";
 import {
 	parseLaporCommand,
 	parsePeringatanCommand,
@@ -15,14 +19,18 @@ type OpenClawWebhookEvent = {
 	direction?: "incoming" | "outgoing";
 	from?: string;
 	to?: string;
+	senderId?: string | null;
+	chatId?: string;
 	text?: string;
 	messageId?: string;
 	ack?: number;
+	timestamp?: number | string;
+	observedAt?: number | string;
 };
 
 const EXPERIMENT_ID_REGEX = /\[([A-Z0-9-]+)\]/;
 
-async function handleLapor(text: string, chatId: string): Promise<string> {
+async function handleLapor(text: string, chatId: string, event: OpenClawWebhookEvent): Promise<string> {
 	const result = parseLaporCommand(text);
 
 	if (!result.ok) {
@@ -35,15 +43,32 @@ async function handleLapor(text: string, chatId: string): Promise<string> {
 		lik_codes: result.likCodes.join(","),
 		channel: "WA",
 	});
+	const createdAtClient = parseMessageTimestamp(event.timestamp);
+	const timeToken = text.match(/\bwaktu=(\S+)/i)?.[1];
+	// "sekarang" means when this message was composed, never webhook receipt.
+	const observedAt = timeToken?.toLowerCase() === "sekarang" && event.observedAt === undefined
+		? createdAtClient : parseMessageTimestamp(event.observedAt ?? timeToken);
+	if (createdAtClient !== undefined) params.set("created_at_client", String(createdAtClient));
+	if (observedAt !== undefined) params.set("observed_at", String(observedAt));
+	if (event.messageId) params.set("message_id", event.messageId);
+	// Legacy personal `from` values are supported, but group addresses never identify a sender.
+	const sender = normalizeWhatsAppSender(event.senderId === undefined ? event.from : event.senderId);
 
 	try {
 		const res = await fetch(
 			`http://localhost:3000/api/report/submit?${params.toString()}`,
+			{ headers: {
+				authorization: `Bearer ${OPENCLAW_WEBHOOK_TOKEN}`,
+				...(sender && { "x-whatsapp-sender": sender }),
+			} },
 		);
 		const data = (await res.json()) as any;
 
 		if (!res.ok || !data.ok) {
 			return `Gagal mengirim laporan: ${data.error || res.statusText}. Coba lagi ya, Bang.`;
+		}
+		if (data.status === "archived" || data.status === "time_uncertain") {
+			return `${data.message}${data.status === "time_uncertain" ? " Sertakan waktu pengamatan dengan zona waktu (waktu=YYYY-MM-DDTHH:mm:ss+07:00). Untuk tanda yang terlihat saat menulis pesan, gunakan waktu=sekarang; pilihan ini memerlukan waktu asli pesan dari WhatsApp." : ""} Jika kondisi masih terjadi, amati kembali dan kirim laporan baru.`;
 		}
 
 		if (data.status === "triggered") {
@@ -95,7 +120,7 @@ async function handlePeringatan(text: string, chatId: string): Promise<string> {
 	}
 }
 
-route.post("/openclaw/webhook", async (c) => {
+route.post("/openclaw/webhook", gatewayAuth, async (c) => {
 	try {
 		const body = await c.req.json<OpenClawWebhookEvent>().catch(() => null);
 		if (!body) {
@@ -132,6 +157,9 @@ route.post("/openclaw/webhook", async (c) => {
 				timestamp: String(timestamp),
 				from,
 				text,
+				...(messageId && { messageId }),
+				...(body.timestamp !== undefined && { createdAtClient: String(body.timestamp) }),
+				...(body.observedAt !== undefined && { observedAt: String(body.observedAt) }),
 				...(experimentId && { experimentId }),
 			});
 
@@ -140,14 +168,14 @@ route.post("/openclaw/webhook", async (c) => {
 			const cleanText = text.replace(/@\d+\s*/, "").trim();
 			const lowerText = cleanText.toLowerCase();
 			const isCommand = lowerText.startsWith("!lapor") || lowerText.startsWith("!peringatan");
-			const replyTarget = to || from;
+			const replyTarget = body.chatId || to || from;
 
 			if (isCommand) {
 				console.log(`[openclaw-webhook] Intercepted command: ${lowerText.substring(0, 50)}`);
 
 				let reply: string;
 				if (lowerText.startsWith("!lapor")) {
-					reply = await handleLapor(cleanText, replyTarget);
+					reply = await handleLapor(cleanText, replyTarget, body);
 				} else {
 					reply = await handlePeringatan(cleanText, replyTarget);
 				}

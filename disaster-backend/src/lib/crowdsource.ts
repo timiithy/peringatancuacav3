@@ -1,6 +1,6 @@
 import { redis } from "./redis";
 
-const QUEUE_PREFIX = "reports:queue";
+export const QUEUE_PREFIX = "reports:observed:v1";
 const WARNING_PREFIX = "warnings:active";
 
 export type ActiveWarning = {
@@ -15,17 +15,23 @@ export async function processReport(
 	likCodes: string[],
 	windowMs: number,
 	threshold: number,
+	observedAt: number,
+	reportId: string,
 ): Promise<{ triggeredCodes: string[]; codeCounts: Record<string, number> }> {
 	const now = Date.now();
 	const windowStart = now - windowMs;
 	const triggeredCodes: string[] = [];
 	const codeCounts: Record<string, number> = {};
+	if (!Number.isFinite(observedAt) || observedAt > now || observedAt < windowStart) {
+		return { triggeredCodes, codeCounts };
+	}
 
 	for (const code of likCodes) {
 		const key = `${QUEUE_PREFIX}:${beachLocation}:${code.toLowerCase()}`;
 
-		await redis.zAdd(key, { score: now, value: crypto.randomUUID() });
-		await redis.zRemRangeByScore(key, 0, windowStart);
+		await redis.zAdd(key, { score: observedAt, value: reportId });
+		await redis.zRemRangeByScore(key, "-inf", `(${windowStart}`);
+		await redis.zRemRangeByScore(key, `(${now}`, "+inf");
 		const count = await redis.zCard(key);
 
 		codeCounts[code] = count;
@@ -48,10 +54,10 @@ export async function getReportTimeRange(
 		const key = `${QUEUE_PREFIX}:${beachLocation}:${code.toLowerCase()}`;
 		const earliest = await redis.zRangeWithScores(key, 0, 0);
 		const latest = await redis.zRangeWithScores(key, -1, -1);
-		if (earliest.length > 0) {
+		if (earliest[0]) {
 			if (earliest[0].score < minTs) minTs = earliest[0].score;
 		}
-		if (latest.length > 0) {
+		if (latest[0]) {
 			if (latest[0].score > maxTs) maxTs = latest[0].score;
 		}
 	}

@@ -15,6 +15,7 @@ const BACKEND_WEBHOOK_URL =
 
 const BACKEND_REPORT_URL =
   process.env.BACKEND_REPORT_URL || "http://peringatan-backend:3000/api/report";
+const BACKEND_WEBHOOK_TOKEN = process.env.OPENCLAW_WEBHOOK_TOKEN || "";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://peringatan-redis:6379";
 
@@ -128,12 +129,16 @@ function extractAndStripReport(text) {
   return { cleanText, reportPayload };
 }
 
-async function sendReportToBackend(reportPayload) {
+async function sendReportToBackend(reportPayload, senderId) {
   try {
     const res = await fetch(BACKEND_REPORT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reportPayload),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${BACKEND_WEBHOOK_TOKEN}`,
+        ...(senderId && { "x-whatsapp-sender": senderId }),
+      },
+      body: JSON.stringify({ ...reportPayload, _channel: "WA" }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -157,7 +162,8 @@ async function forwardToBackend(msg) {
 
   if (reportPayload) {
     log(`detected [REPORT] marker, sending to backend...`);
-    await sendReportToBackend(reportPayload);
+    // Assistant-generated markers cannot establish who the original reporter was.
+    await sendReportToBackend(reportPayload, msg.role === "user" ? msg.from : null);
   }
 
   const payload = {
@@ -166,6 +172,8 @@ async function forwardToBackend(msg) {
     direction: msg.role === "assistant" ? "outgoing" : "incoming",
     from: msg.role === "user" ? msg.from || CHAT_ID : "",
     to: msg.role === "assistant" ? msg.to || CHAT_ID : "",
+    senderId: msg.role === "user" ? msg.from || null : null,
+    chatId: CHAT_ID,
     text: cleanText || "",
     timestamp: msg.timestamp || msg.createdAt || new Date().toISOString(),
     channel: "whatsapp",
@@ -176,7 +184,7 @@ async function forwardToBackend(msg) {
   try {
     const res = await fetch(BACKEND_WEBHOOK_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${BACKEND_WEBHOOK_TOKEN}` },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {

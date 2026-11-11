@@ -59,6 +59,7 @@ function createTablesIfNotExist(sqlite: Database) {
 			raw_body TEXT,
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
+		CREATE INDEX IF NOT EXISTS reports_reporter_id_idx ON reports(reporter_id);
 		CREATE TABLE IF NOT EXISTS shap_predictions (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			report_id TEXT REFERENCES reports(id),

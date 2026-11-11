@@ -103,6 +103,7 @@ export async function getBeachBySlug(slug: string) {
 }
 
 export async function persistReport(data: {
+	id?: string;
 	beachLocation: string;
 	reporterId: string | null;
 	source: string;
@@ -110,23 +111,41 @@ export async function persistReport(data: {
 	rawBody: Record<string, unknown>;
 }) {
 	const db = getDb();
+	if (data.id) {
+		const existing = (await db.select().from(schema.reports).where(eq(schema.reports.id, data.id)).limit(1))[0];
+		if (existing) return existing;
+	}
 	let beach = await getBeachBySlug(data.beachLocation);
 	if (!beach) {
 		const inserted = await db.insert(schema.beaches).values({
 			name: data.beachLocation.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
 			slug: data.beachLocation,
-		}).returning();
-		beach = inserted[0];
+		}).onConflictDoNothing({ target: schema.beaches.slug }).returning();
+		beach = inserted[0] ?? await getBeachBySlug(data.beachLocation);
 	}
+	if (!beach) throw new Error("Report beach was not persisted");
 
 	const inserted = await db.insert(schema.reports).values({
+		...(data.id && { id: data.id }),
 		beachId: beach.id,
 		reporterId: data.reporterId,
 		source: data.source,
 		naturalSigns: JSON.stringify(data.naturalSigns),
 		rawBody: JSON.stringify(data.rawBody),
-	}).returning();
-	return inserted[0];
+	}).onConflictDoNothing({ target: schema.reports.id }).returning();
+	const report = inserted[0] ?? (data.id ? (await db.select().from(schema.reports).where(eq(schema.reports.id, data.id)).limit(1))[0] : undefined);
+	if (!report) throw new Error("Report was not persisted");
+	return report;
+}
+
+export function reportMetadata(report: { rawBody: unknown }): Record<string, unknown> {
+	return typeof report.rawBody === "string" ? JSON.parse(report.rawBody) : (report.rawBody as Record<string, unknown> | null) ?? {};
+}
+
+export async function persistReportAcknowledgement(report: { id: string; rawBody: unknown }, acknowledgement: Record<string, unknown>) {
+	await getDb().update(schema.reports).set({
+		rawBody: JSON.stringify({ ...reportMetadata(report), acknowledgement }),
+	}).where(eq(schema.reports.id, report.id));
 }
 
 export async function persistShapPrediction(data: {

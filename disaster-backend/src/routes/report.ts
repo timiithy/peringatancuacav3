@@ -2,18 +2,21 @@ import { Hono } from "hono";
 import { redis } from "../lib/redis";
 import { sendOpenClawAlert } from "../lib/openclaw";
 import { processReport, getActiveWarning, setActiveWarning, getReportTimeRange, resetQueues } from "../lib/crowdsource";
-import { persistReport, persistShapPrediction } from "../lib/bmkg";
+import { persistReport, persistShapPrediction, reportMetadata, persistReportAcknowledgement } from "../lib/bmkg";
+import { classifyObservation, observationMessage, type ObservationTiming } from "../lib/observation-time";
 import { decideWarningLevel, reassure } from "../lib/reassurance";
 import { publishIotAlertForEvent } from "../lib/iot-mqtt";
 import { findNearestBeach, isValidCoordinates } from "../lib/beach-location";
 import { checkReportRateLimit, getClientIp } from "../lib/rate-limit";
+import { webReporterId, whatsAppReporterId } from "../lib/reporter";
+import { requireGateway } from "../middleware/gatewayAuth";
 import {
 	ALERTS_CHANNEL,
 	ALERTS_STREAM,
 	ML_BASE_URL,
 	REPORT_DEDUPE_PREFIX,
 	REPORT_SYNC_STREAM,
-	REPORT_WINDOW_MS,
+	LIVE_OBSERVATION_WINDOW_MS,
 	REPORT_THRESHOLD,
 	BEACH_THRESHOLDS,
 	ACTIVE_WARNING_TTL_SECONDS,
@@ -130,8 +133,11 @@ type ReportResponse = {
 	ok: true;
 	reportId: string;
 	serverTimestamp: number;
-	shouldDistribute: boolean;
-	alertEvent: Record<string, unknown>;
+	status?: "queued" | "archived" | "time_uncertain";
+	disposition?: string;
+	message?: string;
+	shouldDistribute?: boolean;
+	alertEvent?: Record<string, unknown>;
 	reportCounts: Record<string, number>;
 };
 
@@ -144,6 +150,7 @@ function sleep(ms: number) {
 }
 
 route.post("/report", async (c) => {
+	const receivedAtServer = Date.now();
 	// Anonymous flood guard (no auth required): cap raw request volume per IP.
 	const clientIp = getClientIp(c.req.header("x-forwarded-for"));
 	const rate = await checkReportRateLimit(clientIp);
@@ -160,6 +167,11 @@ route.post("/report", async (c) => {
 
 	const input = await c.req.json<PredictionInput>().catch(() => null);
 	if (!input) return c.json({ ok: false, error: "Invalid JSON" }, 400);
+	const isWhatsApp = input._channel === "WA" || input._channel === "WHATSAPP";
+	if (isWhatsApp) requireGateway(c);
+	const reporterId = isWhatsApp
+		? whatsAppReporterId(c.req.header("x-whatsapp-sender"))
+		: webReporterId(input.reporterBrowserId);
 
 	if (!Array.isArray(input.lik_codes) || input.lik_codes.length === 0) {
 		return c.json({ ok: false, error: "lik_codes required" }, 400);
@@ -208,11 +220,13 @@ route.post("/report", async (c) => {
 		}
 	}
 
-	const receivedAtServer = Date.now();
+	if (input.observedAt !== undefined && (!Number.isFinite(input.observedAt) || input.observedAt <= 0)) {
+		return c.json({ ok: false, error: "observedAt must be a positive epoch timestamp in milliseconds" }, 400);
+	}
 	const clientReportId = input.clientReportId;
 	const createdAtClient = input.createdAtClient;
 	const syncDelayMs = typeof createdAtClient === "number" ? receivedAtServer - createdAtClient : null;
-	const dedupeKey = clientReportId ? `${REPORT_DEDUPE_PREFIX}:${clientReportId}` : null;
+	const dedupeKey = clientReportId ? `${REPORT_DEDUPE_PREFIX}:${isWhatsApp ? "wa-post:" : ""}${clientReportId}` : null;
 	const dedupeLockKey = dedupeKey ? `${dedupeKey}:lock` : null;
 	let holdsDedupeLock = false;
 
@@ -227,7 +241,7 @@ route.post("/report", async (c) => {
 				receivedAtServer,
 				syncDelayMs,
 				reportId: cached.reportId,
-				alertId: cached.alertEvent.alertId,
+				alertId: cached.alertEvent?.alertId ?? null,
 			});
 			return c.json({ ...cached, deduped: true });
 		}
@@ -247,10 +261,10 @@ route.post("/report", async (c) => {
 						status: "DEDUPED",
 						clientReportId,
 						createdAtClient: createdAtClient ?? null,
-						receivedAtServer: Date.now(),
+						receivedAtServer,
 						syncDelayMs,
 						reportId: cached.reportId,
-						alertId: cached.alertEvent.alertId,
+						alertId: cached.alertEvent?.alertId ?? null,
 					});
 					return c.json({ ...cached, deduped: true });
 				}
@@ -266,7 +280,38 @@ route.post("/report", async (c) => {
 
 	try {
 		const serverTimestamp = Date.now();
-		const reportId = crypto.randomUUID();
+		const isWA = isWhatsApp;
+		const channel = isWA ? "WHATSAPP" : "PWA";
+		const timing = classifyObservation(input.observedAt, createdAtClient, receivedAtServer, LIVE_OBSERVATION_WINDOW_MS);
+		// Persistence is required before counting, inference, or acknowledging history.
+		const savedReport = await persistReport({
+			id: clientReportId ? `${isWhatsApp ? "whatsapp-post" : "web"}:${clientReportId}` : crypto.randomUUID(),
+			beachLocation, reporterId, source: channel,
+			naturalSigns: input.lik_codes,
+			rawBody: { ...input, timing },
+		});
+		const metadata = reportMetadata(savedReport);
+		if (metadata.acknowledgement) {
+			await logReportSyncEvent({ ...(metadata.timing as ObservationTiming), status: "DEDUPED", reportId: savedReport.id, clientReportId: clientReportId ?? null, attemptReceivedAtServer: receivedAtServer });
+			return c.json({ ...(metadata.acknowledgement as ReportResponse), deduped: true });
+		}
+		const firstTiming = (metadata.timing ?? timing) as ObservationTiming;
+		const reportId = savedReport.id;
+		const acknowledge = async (response: ReportResponse) => {
+			const processedAtServer = Date.now();
+			const acknowledgement = { ...response, ...firstTiming, processedAtServer, processingDelayMs: processedAtServer - firstTiming.receivedAtServer };
+			await persistReportAcknowledgement(savedReport, acknowledgement);
+			if (dedupeKey) await redis.set(dedupeKey, JSON.stringify(acknowledgement), { EX: REPORT_DEDUPE_TTL_SECONDS });
+			await logReportSyncEvent({ ...firstTiming, status: "ACKNOWLEDGED", reportId, clientReportId: clientReportId ?? null, processedAtServer, processingDelayMs: acknowledgement.processingDelayMs });
+			return acknowledgement;
+		};
+		await logReportSyncEvent({ ...firstTiming, status: firstTiming.disposition, reportId, clientReportId: clientReportId ?? null });
+		if (firstTiming.disposition !== "ACCEPTED_LIVE") {
+			return c.json(await acknowledge({ ok: true, reportId, serverTimestamp,
+				status: firstTiming.disposition === "ARCHIVED_STALE" ? "archived" : "time_uncertain",
+				message: observationMessage(firstTiming.disposition), shouldDistribute: false, reportCounts: {},
+			}));
+		}
 
 		const threshold = BEACH_THRESHOLDS[beachLocation] ?? REPORT_THRESHOLD;
 
@@ -274,21 +319,26 @@ route.post("/report", async (c) => {
 		const { triggeredCodes, codeCounts } = await processReport(
 			beachLocation,
 			input.lik_codes,
-			REPORT_WINDOW_MS,
+			LIVE_OBSERVATION_WINDOW_MS,
 			threshold,
+			firstTiming.observedAt!,
+			reportId,
 		);
 
 		if (triggeredCodes.length === 0) {
+			const responsePayload: ReportResponse = { ok: true, reportId, serverTimestamp, status: "queued", reportCounts: codeCounts };
+			const acknowledgement = await acknowledge(responsePayload);
 			await logReportSyncEvent({
+				...firstTiming,
+				processedAtServer: acknowledgement.processedAtServer,
+				processingDelayMs: acknowledgement.processingDelayMs,
 				status: "QUEUED",
 				clientReportId: clientReportId ?? null,
-				createdAtClient: createdAtClient ?? null,
-				receivedAtServer: Date.now(),
-				syncDelayMs,
+				reportId,
 				beachLocation,
 				lik_codes: input.lik_codes,
 			});
-			return c.json({ ok: true, reportId, serverTimestamp, status: "queued", reportCounts: codeCounts });
+			return c.json(acknowledgement);
 		}
 
 		// Threshold hit — proceed to ML
@@ -311,11 +361,11 @@ route.post("/report", async (c) => {
 		if (!mlRes.ok) {
 			const detail = await mlRes.text().catch(() => "");
 			await logReportSyncEvent({
+				...firstTiming,
 				status: "FAILED_ML",
 				clientReportId: clientReportId ?? null,
-				createdAtClient: createdAtClient ?? null,
-				receivedAtServer: Date.now(),
-				syncDelayMs,
+				processedAtServer: Date.now(),
+				processingDelayMs: Date.now() - firstTiming.receivedAtServer,
 				reportId,
 				mlStatus: mlRes.status,
 			});
@@ -327,19 +377,10 @@ route.post("/report", async (c) => {
 
 		const result = (await mlRes.json()) as MlResult;
 
-		const isWA = input._channel === "WA";
-		const channel = isWA ? "WHATSAPP" : (input._channel ?? "PWA");
 		const isMultisign = triggeredCodes.length > 1;
 
 		let reassuranceResult: Record<string, unknown> | null = null;
 		try {
-			const savedReport = await persistReport({
-				beachLocation,
-				reporterId: reporterUserId,
-				source: channel,
-				naturalSigns: triggeredCodes,
-				rawBody: input as unknown as Record<string, unknown>,
-			});
 			const savedPrediction = await persistShapPrediction({
 				reportId: savedReport.id,
 				riskLevel: result.community_characteristics ?? "Unknown",
@@ -348,6 +389,7 @@ route.post("/report", async (c) => {
 				actions: result.action_recommendation ? [result.action_recommendation] : [],
 				rawResponse: result as unknown as Record<string, unknown>,
 			});
+			if (!savedPrediction) throw new Error("Prediction was not persisted");
 			const reassured = await reassure(savedPrediction.id, savedReport.id, {
 				riskLevel: result.community_characteristics ?? "Unknown",
 				communityCharacteristics: result.community_characteristics,
@@ -467,23 +509,21 @@ route.post("/report", async (c) => {
 			reportCounts: codeCounts,
 		};
 
-		if (dedupeKey) {
-			await redis.set(dedupeKey, JSON.stringify(responsePayload), { EX: REPORT_DEDUPE_TTL_SECONDS });
-		}
+		const acknowledgement = await acknowledge(responsePayload);
 
 		await logReportSyncEvent({
+			...firstTiming,
+			processedAtServer: acknowledgement.processedAtServer,
+			processingDelayMs: acknowledgement.processingDelayMs,
 			status: "TRIGGERED",
 			clientReportId: clientReportId ?? null,
-			createdAtClient: createdAtClient ?? null,
-			receivedAtServer: Date.now(),
-			syncDelayMs,
 			reportId,
 			alertId: alertEvent.alertId,
 			shouldDistribute,
 			triggeredCodes,
 		});
 
-		return c.json(responsePayload);
+		return c.json(acknowledgement);
 	} finally {
 		if (holdsDedupeLock && dedupeLockKey) {
 			await redis.del(dedupeLockKey);

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const beaches = sqliteTable("beaches", {
@@ -15,10 +15,11 @@ export const reports = sqliteTable("reports", {
 	beachId: integer("beach_id").references(() => beaches.id),
 	reporterId: text("reporter_id"),
 	source: text("source").notNull(),
-	naturalSigns: text("natural_signs").notNull().$type<string[]>(),
-	rawBody: text("raw_body").$type<Record<string, unknown>>(),
+	// JSON is serialized explicitly by persistence helpers; the SQL value is text.
+	naturalSigns: text("natural_signs").notNull(),
+	rawBody: text("raw_body"),
 	createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
-});
+}, (table) => [index("reports_reporter_id_idx").on(table.reporterId)]);
 
 export const shapPredictions = sqliteTable("shap_predictions", {
 	id: integer("id").primaryKey({ autoIncrement: true }),

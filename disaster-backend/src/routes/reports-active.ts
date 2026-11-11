@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { redis } from "../lib/redis";
-import { getActiveWarning } from "../lib/crowdsource";
-import { REPORT_WINDOW_MS, REPORT_THRESHOLD } from "../config";
+import { getActiveWarning, QUEUE_PREFIX } from "../lib/crowdsource";
+import { LIVE_OBSERVATION_WINDOW_MS, REPORT_THRESHOLD } from "../config";
 import { ALLOWED_BEACH_LOCATIONS } from "../types";
 
 const route = new Hono();
@@ -23,17 +23,18 @@ route.get("/reports/active", async (c) => {
 		);
 	}
 
-	const windowStart = Date.now() - REPORT_WINDOW_MS;
-	const pattern = `reports:queue:${beachLocation}:*`;
+	const now = Date.now();
+	const windowStart = now - LIVE_OBSERVATION_WINDOW_MS;
+	const pattern = `${QUEUE_PREFIX}:${beachLocation}:*`;
 	const keys = await redis.keys(pattern);
 
 	const counts: Record<string, { count: number; triggered: boolean }> = {};
 
 	for (const key of keys) {
-		const suffix = key.slice(`reports:queue:${beachLocation}:`.length);
+		const suffix = key.slice(`${QUEUE_PREFIX}:${beachLocation}:`.length);
 		const code = suffix.toUpperCase();
 
-		const count = await redis.zCount(key, windowStart, "+inf");
+		const count = await redis.zCount(key, windowStart, now);
 		if (count === 0) continue;
 
 		const cooldownKey = `reports:cooldown:${beachLocation}:${code}`;
@@ -47,7 +48,7 @@ route.get("/reports/active", async (c) => {
 	return c.json({
 		ok: true,
 		beach_location: beachLocation,
-		window_ms: REPORT_WINDOW_MS,
+		window_ms: LIVE_OBSERVATION_WINDOW_MS,
 		threshold: REPORT_THRESHOLD,
 		counts,
 		active_warning: activeWarning,
