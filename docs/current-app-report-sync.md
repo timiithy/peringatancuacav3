@@ -1,5 +1,15 @@
 # Current web app: saved reports and synchronization
 
+All 17 strong-wind signs can be stored. Under the accepted provisional-sign
+policy, fresh reports containing only unranked signs receive `pending_validation`
+and `inferenceStatus: insufficient_evidence`, without queue updates or warning
+delivery. This is a positive server acknowledgement and stops retries. The PWA
+stores the response message and inference status with the received record and
+shows `Laporan dicatat, menunggu validasi tanda` after receipt and reload. Mixed
+reports retain every sign but use ranked signs only in local inference; their
+receipt explains which signs remain provisional. Existing saved payloads are
+unchanged. See `strong-wind-rule-mapping.md` for the exact sign sets and rules.
+
 The Next.js report form now saves each submitted report in IndexedDB database `peringatan-reports`, store `reports`, before attempting delivery. The save resolves only after its database transaction commits. If storage fails, no request is made and the form remains available. The report payload contains a stable `clientReportId`, `createdAtClient`, beach, LIK codes and any captured coordinates. Retries never recreate those values.
 
 The root layout mounts `ReportSyncStatus`, which attempts pending reports on app opening, reconnection, window focus and becoming visible, plus every 15 seconds while the app runs. Network/server failures use retry delays from 5 seconds up to 5 minutes. The manual retry button can attempt immediately. Web Locks serialize send loops across tabs where available; each tab also shares one active sync promise. Sending is limited to a 20-second request timeout. Closing the app leaves pending reports stored, but delivery resumes when it is opened again. There is no service-worker background sending in this implementation.

@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 from engine.inference_engine import InferenceEngine as LikInferenceEngine
 import sqlite3
@@ -46,15 +46,30 @@ BEACH_MAP = {
 
 @app.post("/predict")
 async def predict(req: PredictRequest):
+    if req.beach_location not in BEACH_MAP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported beach_location. Supported beaches: {', '.join(BEACH_MAP)}",
+        )
+
     codes = req.reported_codes if req.reported_codes else req.lik_codes
     bid = req.beach_id if req.beach_id else BEACH_MAP.get(req.beach_location, 0)
     bname = req.beach_name if req.beach_name else req.beach_location
 
     engine = LikInferenceEngine()
+    # Select the server-owned community profile using the backend's beach slug.
+    rules_by_beach = {
+        "pantai_lampuuk": engine.pantai_lampuuk_rules,
+        "pantai_lhoknga": engine.pantai_lhoknga_rules,
+        "pantai_ulee_lheue": engine.pantai_ulee_lheue_rules,
+        "pantai_depok": engine.pantai_depok_rules,
+        "pantai_samas": engine.pantai_samas_rules,
+    }
     result = engine.predict({
         "lik_codes": codes,
         "active_warning": req.active_warning,
         "beach_id": bid,
         "beach_name": bname,
+        "rules": rules_by_beach[req.beach_location],
     })
     return result

@@ -20,6 +20,7 @@ import { ALLOWED_BEACH_LOCATIONS } from "../types";
 import type { MlResult } from "../types";
 import { whatsAppReporterId } from "../lib/reporter";
 import { requireGateway } from "../middleware/gatewayAuth";
+import { assessSignCodes, rankedSignCodes, acceptedModelSigns, provisionalMessage, insufficientEvidenceReceipt } from "../lib/strong-wind-signs";
 
 const route = new Hono();
 
@@ -60,6 +61,8 @@ route.get("/report/submit", async (c) => {
 	if (lik_codes.length === 0) {
 		return c.json({ ok: false, error: "lik_codes must contain at least one code" }, 400);
 	}
+	const signAssessment = assessSignCodes(lik_codes);
+	if (!signAssessment) return c.json({ ok: false, error: "lik_codes must contain valid Wn-1 through Wn-17 codes" }, 400);
 
 	let createdAtClient: number | undefined;
 	if (createdAtClientRaw) {
@@ -93,9 +96,10 @@ route.get("/report/submit", async (c) => {
 		const reportId = savedReport.id;
 		const acknowledge = async (response: Record<string, unknown>) => {
 			const processedAtServer = Date.now();
-			const acknowledgement = { ...response, ...firstTiming, processedAtServer, processingDelayMs: processedAtServer - firstTiming.receivedAtServer };
+			const message = [response.message, provisionalMessage(signAssessment.unrankedCodes)].filter(Boolean).join(" ") || undefined;
+			const acknowledgement = { ...response, message, ...firstTiming, signAssessment, processedAtServer, processingDelayMs: processedAtServer - firstTiming.receivedAtServer };
 			await persistReportAcknowledgement(savedReport, acknowledgement);
-			await redis.xAdd(REPORT_SYNC_STREAM, "*", { json: JSON.stringify({ ...firstTiming, processedAtServer, processingDelayMs: acknowledgement.processingDelayMs, status: "ACKNOWLEDGED", reportId, messageId: messageId ?? null }) });
+			await redis.xAdd(REPORT_SYNC_STREAM, "*", { json: JSON.stringify({ ...firstTiming, processedAtServer, processingDelayMs: acknowledgement.processingDelayMs, status: "ACKNOWLEDGED", inferenceStatus: response.inferenceStatus ?? null, signAssessment, reportId, messageId: messageId ?? null }) });
 			return acknowledgement;
 		};
 		await redis.xAdd(REPORT_SYNC_STREAM, "*", { json: JSON.stringify({ ...firstTiming, status: firstTiming.disposition, reportId, messageId: messageId ?? null }) });
@@ -104,11 +108,14 @@ route.get("/report/submit", async (c) => {
 			status: firstTiming.disposition === "ARCHIVED_STALE" ? "archived" : "time_uncertain",
 			message: observationMessage(firstTiming.disposition), shouldDistribute: false, reportCounts: {},
 		}));
+		if (signAssessment.rankedCodes.length === 0) {
+			return c.json(await acknowledge({ ok: true, reportId, serverTimestamp, ...insufficientEvidenceReceipt() }));
+		}
 		const threshold = BEACH_THRESHOLDS[beachLocation] ?? REPORT_THRESHOLD;
 
 		const { triggeredCodes, codeCounts } = await processReport(
 			beachLocation,
-			lik_codes,
+			signAssessment.rankedCodes,
 			LIVE_OBSERVATION_WINDOW_MS,
 			threshold,
 			firstTiming.observedAt!,
@@ -132,18 +139,20 @@ route.get("/report/submit", async (c) => {
 				reportId,
 				serverTimestamp,
 				status: "queued",
+				inferenceStatus: "pending",
 				message: "Laporan diterima. Menunggu laporan lain untuk mencapai threshold.",
 				reportCounts: codeCounts,
 			}));
 		}
 
 		const existingWarning = await getActiveWarning(beachLocation);
+		const activeCodes = rankedSignCodes(existingWarning?.codes);
 
 		const mlPayload = {
 			lik_codes: triggeredCodes,
 			beach_location: beachLocation,
-			is_active_warning: existingWarning !== null,
-			active_warning: existingWarning?.codes ?? [],
+			is_active_warning: activeCodes.length > 0,
+			active_warning: activeCodes,
 		};
 
 		const mlRes = await fetch(`${ML_BASE_URL}/predict`, {
@@ -160,8 +169,12 @@ route.get("/report/submit", async (c) => {
 			);
 		}
 
-		const result = (await mlRes.json()) as MlResult;
-		const isMultisign = triggeredCodes.length > 1;
+		const modelResult = (await mlRes.json()) as MlResult;
+		const { validatedCodes, currentCodes, isMultisign } = acceptedModelSigns(modelResult, triggeredCodes, activeCodes);
+		if (currentCodes.length === 0) {
+			return c.json(await acknowledge({ ok: true, reportId, serverTimestamp, ...insufficientEvidenceReceipt() }));
+		}
+		const result: MlResult = { ...modelResult, triggered_lik_codes: validatedCodes, active_warning: validatedCodes };
 
 		let reassuranceResult: Record<string, unknown> | null = null;
 		try {
@@ -194,8 +207,8 @@ route.get("/report/submit", async (c) => {
 			decideWarningLevel(result.community_characteristics, "NORMAL", isMultisign).finalLevel;
 		const shouldDistribute = reassuranceFinalLevel !== "NORMAL";
 		const riskLevel = reassuranceFinalLevel.toLowerCase();
-		const reporterCount = Object.values(codeCounts).reduce((sum, count) => sum + count, 0);
-		const timeRange = await getReportTimeRange(beachLocation, triggeredCodes);
+		const reporterCount = currentCodes.reduce((sum, code) => sum + (codeCounts[code] ?? 0), 0);
+		const timeRange = await getReportTimeRange(beachLocation, currentCodes);
 
 		const alertEvent = {
 			eventType: "DISASTER_ALERT",
@@ -226,7 +239,7 @@ route.get("/report/submit", async (c) => {
 		};
 
 		const mergedCodes = [...new Set([
-			...(existingWarning?.codes ?? []),
+			...activeCodes,
 			...result.active_warning,
 		])];
 		await setActiveWarning(beachLocation, mergedCodes, alertEvent.alertId, ACTIVE_WARNING_TTL_SECONDS, alertEvent);
@@ -252,7 +265,7 @@ route.get("/report/submit", async (c) => {
 			console.log("[report-submit] published IoT MQTT alert", iotResult.topic);
 		}
 
-		if (isWA) {
+		if (isWA && shouldDistribute) {
 			const riskLabel =
 				alertEvent.riskLevel === "siaga" || alertEvent.riskLevel === "ekstrem"
 					? "🔴 BAHAYA"
@@ -262,7 +275,7 @@ route.get("/report/submit", async (c) => {
 			const alertText = [
 				`⚠️ PERINGATAN — ${riskLabel} di ${beachLocation.replace(/_/g, " ")}`,
 				`👥 Dilaporkan oleh ${alertEvent.reporterCount} nelayan`,
-				`Tanda: ${triggeredCodes.join(", ")}`,
+				`Tanda: ${currentCodes.join(", ")}`,
 				`Rekomendasi: ${alertEvent.ml?.action_recommendation ?? "Tidak ada rekomendasi"}`,
 				"Peringatan sedang dikirim ke semua nelayan.",
 			].join("\n");
@@ -270,14 +283,15 @@ route.get("/report/submit", async (c) => {
 			console.log("[report-submit] sent WhatsApp alert broadcast");
 		}
 
-		await resetQueues(beachLocation, triggeredCodes);
-		console.log("[report-submit] reset queues for", beachLocation, "codes:", triggeredCodes);
+		await resetQueues(beachLocation, currentCodes);
+		console.log("[report-submit] reset queues for", beachLocation, "codes:", currentCodes);
 
 		return c.json(await acknowledge({
 			ok: true,
 			reportId,
 			serverTimestamp,
 			status: "triggered",
+			inferenceStatus: "evaluated",
 			shouldDistribute,
 			alertEvent,
 			reportCounts: codeCounts,

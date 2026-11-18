@@ -10,6 +10,7 @@ import { findNearestBeach, isValidCoordinates } from "../lib/beach-location";
 import { checkReportRateLimit, getClientIp } from "../lib/rate-limit";
 import { webReporterId, whatsAppReporterId } from "../lib/reporter";
 import { requireGateway } from "../middleware/gatewayAuth";
+import { assessSignCodes, rankedSignCodes, acceptedModelSigns, provisionalMessage, insufficientEvidenceReceipt } from "../lib/strong-wind-signs";
 import {
 	ALERTS_CHANNEL,
 	ALERTS_STREAM,
@@ -133,7 +134,8 @@ type ReportResponse = {
 	ok: true;
 	reportId: string;
 	serverTimestamp: number;
-	status?: "queued" | "archived" | "time_uncertain";
+	status?: "queued" | "archived" | "time_uncertain" | "pending_validation";
+	inferenceStatus?: "pending" | "evaluated" | "insufficient_evidence";
 	disposition?: string;
 	message?: string;
 	shouldDistribute?: boolean;
@@ -176,6 +178,8 @@ route.post("/report", async (c) => {
 	if (!Array.isArray(input.lik_codes) || input.lik_codes.length === 0) {
 		return c.json({ ok: false, error: "lik_codes required" }, 400);
 	}
+	const signAssessment = assessSignCodes(input.lik_codes);
+	if (!signAssessment) return c.json({ ok: false, error: "lik_codes must contain valid Wn-1 through Wn-17 codes" }, 400);
 
 	const suppliedBeachLocation = typeof input.beach_location === "string"
 		? input.beach_location.trim().toLowerCase()
@@ -299,10 +303,11 @@ route.post("/report", async (c) => {
 		const reportId = savedReport.id;
 		const acknowledge = async (response: ReportResponse) => {
 			const processedAtServer = Date.now();
-			const acknowledgement = { ...response, ...firstTiming, processedAtServer, processingDelayMs: processedAtServer - firstTiming.receivedAtServer };
+			const message = [response.message, provisionalMessage(signAssessment.unrankedCodes)].filter(Boolean).join(" ") || undefined;
+			const acknowledgement = { ...response, message, ...firstTiming, signAssessment, processedAtServer, processingDelayMs: processedAtServer - firstTiming.receivedAtServer };
 			await persistReportAcknowledgement(savedReport, acknowledgement);
 			if (dedupeKey) await redis.set(dedupeKey, JSON.stringify(acknowledgement), { EX: REPORT_DEDUPE_TTL_SECONDS });
-			await logReportSyncEvent({ ...firstTiming, status: "ACKNOWLEDGED", reportId, clientReportId: clientReportId ?? null, processedAtServer, processingDelayMs: acknowledgement.processingDelayMs });
+			await logReportSyncEvent({ ...firstTiming, status: "ACKNOWLEDGED", inferenceStatus: response.inferenceStatus ?? null, signAssessment, reportId, clientReportId: clientReportId ?? null, processedAtServer, processingDelayMs: acknowledgement.processingDelayMs });
 			return acknowledgement;
 		};
 		await logReportSyncEvent({ ...firstTiming, status: firstTiming.disposition, reportId, clientReportId: clientReportId ?? null });
@@ -313,12 +318,15 @@ route.post("/report", async (c) => {
 			}));
 		}
 
+		if (signAssessment.rankedCodes.length === 0) {
+			return c.json(await acknowledge({ ok: true, reportId, serverTimestamp, ...insufficientEvidenceReceipt() }));
+		}
 		const threshold = BEACH_THRESHOLDS[beachLocation] ?? REPORT_THRESHOLD;
 
 		// Crowdsource queue: accumulate reports per (beach, code) and check threshold
 		const { triggeredCodes, codeCounts } = await processReport(
 			beachLocation,
-			input.lik_codes,
+			signAssessment.rankedCodes,
 			LIVE_OBSERVATION_WINDOW_MS,
 			threshold,
 			firstTiming.observedAt!,
@@ -326,7 +334,7 @@ route.post("/report", async (c) => {
 		);
 
 		if (triggeredCodes.length === 0) {
-			const responsePayload: ReportResponse = { ok: true, reportId, serverTimestamp, status: "queued", reportCounts: codeCounts };
+			const responsePayload: ReportResponse = { ok: true, reportId, serverTimestamp, status: "queued", inferenceStatus: "pending", reportCounts: codeCounts };
 			const acknowledgement = await acknowledge(responsePayload);
 			await logReportSyncEvent({
 				...firstTiming,
@@ -344,12 +352,13 @@ route.post("/report", async (c) => {
 		// Threshold hit — proceed to ML
 
 		const existingWarning = await getActiveWarning(beachLocation);
+		const activeCodes = rankedSignCodes(existingWarning?.codes);
 
 		const mlPayload = {
 			lik_codes: triggeredCodes,
 			beach_location: beachLocation,
-			is_active_warning: existingWarning !== null,
-			active_warning: existingWarning?.codes ?? [],
+			is_active_warning: activeCodes.length > 0,
+			active_warning: activeCodes,
 		};
 
 		const mlRes = await fetch(`${ML_BASE_URL}/predict`, {
@@ -375,9 +384,12 @@ route.post("/report", async (c) => {
 			);
 		}
 
-		const result = (await mlRes.json()) as MlResult;
-
-		const isMultisign = triggeredCodes.length > 1;
+		const modelResult = (await mlRes.json()) as MlResult;
+		const { validatedCodes, currentCodes, isMultisign } = acceptedModelSigns(modelResult, triggeredCodes, activeCodes);
+		if (currentCodes.length === 0) {
+			return c.json(await acknowledge({ ok: true, reportId, serverTimestamp, ...insufficientEvidenceReceipt() }));
+		}
+		const result: MlResult = { ...modelResult, triggered_lik_codes: validatedCodes, active_warning: validatedCodes };
 
 		let reassuranceResult: Record<string, unknown> | null = null;
 		try {
@@ -412,9 +424,9 @@ route.post("/report", async (c) => {
 		const shouldDistribute = reassuranceFinalLevel !== "NORMAL";
 		const riskLevel = reassuranceFinalLevel.toLowerCase();
 
-		const reporterCount = Object.values(codeCounts).reduce((sum, c) => sum + c, 0);
+		const reporterCount = currentCodes.reduce((sum, code) => sum + (codeCounts[code] ?? 0), 0);
 
-		const timeRange = await getReportTimeRange(beachLocation, triggeredCodes);
+		const timeRange = await getReportTimeRange(beachLocation, currentCodes);
 
 		const alertEvent = {
 			eventType: "DISASTER_ALERT",
@@ -446,7 +458,7 @@ route.post("/report", async (c) => {
 
 		// Merge ML-returned active_warning with existing codes (union — warnings only grow until TTL)
 		const mergedCodes = [...new Set([
-			...(existingWarning?.codes ?? []),
+			...activeCodes,
 			...result.active_warning,
 		])];
 		await setActiveWarning(beachLocation, mergedCodes, alertEvent.alertId, ACTIVE_WARNING_TTL_SECONDS, alertEvent);
@@ -485,8 +497,8 @@ route.post("/report", async (c) => {
 				communityCharacteristics: result.community_characteristics,
 				actionRecommendation: result.action_recommendation,
 				signDescription: result.sign_description,
-				reporterCount: Object.values(codeCounts).reduce((sum, c) => sum + c, 0),
-				triggeredCodes,
+				reporterCount,
+				triggeredCodes: currentCodes,
 				serverTimestamp,
 				firstReportAt: timeRange.firstReportAt,
 				lastReportAt: timeRange.lastReportAt,
@@ -498,10 +510,11 @@ route.post("/report", async (c) => {
 		// Reset the crowdsource queue for the triggered codes so a fresh batch of
 		// reports is required before the next alert (prevents an alert storm where
 		// every report past the threshold re-fires the whole pipeline for 24h).
-		await resetQueues(beachLocation, triggeredCodes);
+		await resetQueues(beachLocation, currentCodes);
 
 		const responsePayload: ReportResponse = {
 			ok: true,
+			inferenceStatus: "evaluated",
 			reportId,
 			serverTimestamp,
 			shouldDistribute,

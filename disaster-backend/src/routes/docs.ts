@@ -61,13 +61,14 @@ const openApiDoc = {
 				},
 				responses: {
 					"200": {
-						description: "Report accepted. Returns `status: queued` with `reportCounts` if threshold not yet reached, or full alert event with `reportCounts` once threshold is hit.",
+						description: "Report accepted. Fresh unranked-only observations return `status: pending_validation`, `inferenceStatus: insufficient_evidence` and no alert. Ranked signs return `status: queued` before threshold or an alert event after accepted inference. Original observations and signAssessment are retained in durable receipts.",
 						content: {
 							"application/json": {
 								schema: {
 									oneOf: [
 										{ $ref: "#/components/schemas/ReportQueued" },
 										{ $ref: "#/components/schemas/ReportTriggered" },
+										{ $ref: "#/components/schemas/ReportProvisional" },
 									],
 								},
 							},
@@ -327,7 +328,7 @@ const openApiDoc = {
 				type: "object",
 				required: ["lik_codes", "beach_location"],
 				properties: {
-					lik_codes: { type: "array", items: { type: "string" } },
+					lik_codes: { type: "array", items: { type: "string" }, description: "Wn-1 through Wn-17, case-insensitive. Wn-10, Wn-11, Wn-12, Wn-14, Wn-15, Wn-16 and Wn-17 are recorded as provisional observations and do not raise local warnings." },
 					beach_location: { type: "string", enum: ALLOWED_BEACH_LOCATIONS },
 					clientReportId: { type: "string", format: "uuid", nullable: true },
 					reporterBrowserId: { type: "string", format: "uuid", description: "Optional persistent UUID v4 for this browser installation; unverified, separate from the individual report ID. Older payloads remain unattributed." },
@@ -396,6 +397,23 @@ const openApiDoc = {
 				properties: {
 					count: { type: "number", description: "Number of reports for this code within the current window" },
 					triggered: { type: "boolean", description: "Whether ML was already triggered for this code this window" },
+				},
+			},
+			ReportProvisional: {
+				type: "object",
+				properties: {
+					ok: { type: "boolean", example: true },
+					reportId: { type: "string" },
+					status: { type: "string", enum: ["pending_validation"] },
+					inferenceStatus: { type: "string", enum: ["insufficient_evidence"] },
+					message: { type: "string" },
+					shouldDistribute: { type: "boolean", example: false },
+					signAssessment: { type: "object", properties: {
+						rankedCodes: { type: "array", items: { type: "string" } },
+						unrankedCodes: { type: "array", items: { type: "string" } },
+						trustTiers: { type: "object", additionalProperties: { type: "string", enum: ["high", "low", "unranked"] } },
+					} },
+					reportCounts: { type: "object", additionalProperties: { type: "number" }, example: {} },
 				},
 			},
 			ReportQueued: {

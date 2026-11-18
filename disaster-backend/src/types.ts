@@ -73,6 +73,8 @@ export type ExplanationData = {
 };
 
 export type MlResult = {
+	inference_status?: "evaluated" | "insufficient_evidence";
+	unranked_lik_codes?: string[];
 	active_warning: string[];
 	sign_description: string;
 	community_characteristics: string;

@@ -1,7 +1,10 @@
 import pandas as pd
+import json
 from pathlib import Path
 
 class InferenceEngine:
+
+    SIGN_TRUST = json.loads((Path(__file__).parent / 'sign_trust.json').read_text())
 
     def __init__(self):
         self.df_community = pd.read_csv(Path(__file__).parent / 'community_rule_categorization.csv')
@@ -17,7 +20,7 @@ class InferenceEngine:
 
         self.pantai_depok_rules = {
             'Overall Category': self.df_community.loc[self.df_community['Mapped Beach'] == 'pantai depok', 'Overall Category'].iloc[0],
-            'Level of Interaction with Disaster Status': self.df_community.loc[self.df_community['Mapped Beach'] == 'pantai lampuuk', 'Level of Interaction with Disaster Status'].iloc[0],
+            'Level of Interaction with Disaster Status': self.df_community.loc[self.df_community['Mapped Beach'] == 'pantai depok', 'Level of Interaction with Disaster Status'].iloc[0],
             'Frequency of Usage Status': self.df_community.loc[self.df_community['Mapped Beach'] == 'pantai depok', 'Frequency of Usage Status'].iloc[0],
             'Usage Duration Status': self.df_community.loc[self.df_community['Mapped Beach'] == 'pantai depok', 'Usage Duration Status'].iloc[0],
             'Number of Known LIK Status': self.df_community.loc[self.df_community['Mapped Beach'] == 'pantai depok', 'Number of LIK Combination Status'].iloc[0],
@@ -59,14 +62,21 @@ class InferenceEngine:
         "wn-5": {"label_id": "Lumba-lumba Mendekat", "label_en": "Approaching Dolphins", "detail_id": "Lumba-lumba mendekati perahu, seolah menggiring perahu", "detail_en": "Dolphins approach the boat, seemingly herding it"},
         "wn-6": {"label_id": "Burung Camar", "label_en": "Seagulls", "detail_id": "Burung camar terbang tergesa sambil bersuara keras", "detail_en": "Seagulls fly hastily while calling loudly"},
         "wn-7": {"label_id": "Peralihan Angin", "label_en": "Wind Transition", "detail_id": "Pada masa peralihan angin barat ke angin timur", "detail_en": "During the transition from west wind to east wind"},
-        "wn-8": {"label_id": "Langit Merah", "label_en": "Red Sky", "detail_id": "Langit mendung namun tidak terlalu gelap", "detail_en": "Sky is overcast but not too dark"},
-        "wn-9": {"label_id": "Bintang Redup", "label_en": "Dim Stars", "detail_id": "Hujan atau langit tertutup awan tebal, saat angin timur", "detail_en": "Rain or sky covered by thick clouds during east wind"},
-        "wn-13": {"label_id": "Ikan Naik", "label_en": "Fish Surfacing", "detail_id": "Bintang tidak terlihat di malam hari, saat angin timur", "detail_en": "Stars not visible at night during east wind"},
+        "wn-8": {"label_id": "Langit Mendung", "label_en": "Overcast Sky", "detail_id": "Langit mendung namun tidak terlalu gelap", "detail_en": "Sky is overcast but not too dark"},
+        "wn-9": {"label_id": "Hujan Saat Angin Timur", "label_en": "Rain During East Wind", "detail_id": "Hujan atau langit tertutup awan tebal, saat angin timur", "detail_en": "Rain or sky covered by thick clouds during east wind"},
+        "wn-10": {"label_id": "Cerah Saat Angin Barat", "label_en": "Clear During West Wind", "detail_id": "Langit cerah tanpa awan saat angin barat", "detail_en": "Clear, cloudless weather during west wind"},
+        "wn-11": {"label_id": "Suara Gemuruh", "label_en": "Booming Sound", "detail_id": "Suara gemuruh terdengar sekali atau tujuh kali", "detail_en": "A booming sound is heard once or seven times"},
+        "wn-12": {"label_id": "Bintang Berkelap-kelip", "label_en": "Twinkling Stars", "detail_id": "Banyak bintang berkelap-kelip di malam hari saat angin barat", "detail_en": "Many stars twinkle at night during west wind"},
+        "wn-13": {"label_id": "Bintang Tidak Terlihat", "label_en": "Stars Not Visible", "detail_id": "Bintang tidak terlihat di malam hari, saat angin timur", "detail_en": "Stars not visible at night during east wind"},
+        "wn-14": {"label_id": "Bintang Dekat Bulan", "label_en": "Stars Near Moon", "detail_id": "Bintang dekat atau sejajar dengan bulan, termasuk di dalam lingkaran cahaya bulan", "detail_en": "Stars appear close to or aligned with the moon, including inside its halo"},
+        "wn-15": {"label_id": "Kecoa Beterbangan", "label_en": "Flying Cockroaches", "detail_id": "Kecoa beterbangan di dalam perahu", "detail_en": "Cockroaches fly around inside the boat"},
+        "wn-16": {"label_id": "Bulan di Capit Bintang Kala", "label_en": "Moon Between Scorpion Claws", "detail_id": "Bulan terlihat di antara dua capit rasi Kalajengking (Bintang Kala)", "detail_en": "The moon appears between the claws of the Scorpion constellation (Bintang Kala)"},
+        "wn-17": {"label_id": "Paus Mengibaskan Ekor", "label_en": "Whale Tail Flapping", "detail_id": "Paus muncul ke permukaan dan mengibaskan ekornya", "detail_en": "Whales surface and flap their tails"},
     }
 
     def get_lik_sign_info(self, lik_codes: list) -> list:
         return [
-            {"code": code.upper(), **self.LIK_LABELS[code.lower()]}
+            {"code": code.upper(), **self.LIK_LABELS[code.lower()], "trust_tier": self.SIGN_TRUST[code.capitalize()]}
             for code in lik_codes
             if code.lower() in self.LIK_LABELS
         ]
@@ -84,20 +94,21 @@ class InferenceEngine:
         rules = data.get('rules', {})
 
         # Normalisasi format teks (misal: 'wn-2' atau 'WN-2' menjadi 'Wn-2')
-        input_lik_codes = [str(s).capitalize() for s in raw_lik_codes]
-        active_warnings = [str(s).capitalize() for s in raw_active_warning]
+        input_lik_codes = list(dict.fromkeys(str(s).strip().capitalize() for s in raw_lik_codes))
+        active_warnings = [str(s).strip().capitalize() for s in raw_active_warning]
+        unranked_codes = [code for code in input_lik_codes if self.SIGN_TRUST.get(code) == 'unranked']
 
         # ---------------------------------------------------------
         # Logic 1: Trusted signs filter
         # ---------------------------------------------------------
-        trusted_signs = ['Wn-2', 'Wn-8', 'Wn-1', 'Wn-3', 'Wn-7', 'Wn-4', 'Wn-9', 'Wn-13', 'Wn-6', 'Wn-5']
+        trusted_signs = [code for code, tier in self.SIGN_TRUST.items() if tier != 'unranked']
         
         # Filter hanya LIK yang masuk dalam list trusted
         trusted_input_codes = [code for code in input_lik_codes if code in trusted_signs]
         trusted_active_warnings = [code for code in active_warnings if code in trusted_signs]
 
         # Gabungkan input nelayan dan active warning untuk dievaluasi aksinya (gunakan set agar unik)
-        combined_codes = list(set(trusted_input_codes + trusted_active_warnings))
+        combined_codes = list(dict.fromkeys(trusted_input_codes + trusted_active_warnings))
 
         # ---------------------------------------------------------
         # Logic 2: Action recommendation (Mencari Level Tertinggi)
@@ -134,12 +145,12 @@ class InferenceEngine:
             # Format sesuai instruksi: "LIK_code: action level: action response" atau kata-kata
             action_recommendation = f"Berdasarkan indikasi: {self.get_lik_sign_info([trigger_code])[0]['detail_id']}, direkomendasikan tindakan: {best_action}."
         else:
-            action_recommendation = "Situasi aman. Tidak ada rekomendasi tindakan eskalasi tinggi saat ini."
+            action_recommendation = "Bukti belum cukup untuk inferensi tanda alam. Tidak ada rekomendasi tindakan yang tervalidasi untuk tanda yang diterima; ini bukan konfirmasi kondisi aman."
 
         # ---------------------------------------------------------
         # Logic 3: Get Sign Description
         # ---------------------------------------------------------
-        desc_list = self.get_lik_sign_info(combined_codes)
+        desc_list = self.get_lik_sign_info(combined_codes or unranked_codes)
 
         extracted_descriptions = []
         if desc_list:
@@ -153,6 +164,8 @@ class InferenceEngine:
         # ---------------------------------------------------------
         # Return False jika 'Unsafe' (Low Actionable), True jika sebaliknya (Actionable)
         is_actionable = "Low Actionable" if rules.get('Overall Category') == "Unsafe" else "Actionable"
+        if not combined_codes:
+            is_actionable = "Insufficient Evidence"
 
         # ---------------------------------------------------------
         # Return Final Output JSON
@@ -163,6 +176,8 @@ class InferenceEngine:
             "community_characteristics": is_actionable,
             "action_recommendation": action_recommendation,
             "triggered_lik_codes": combined_codes,
+            "inference_status": "evaluated" if combined_codes else "insufficient_evidence",
+            "unranked_lik_codes": unranked_codes,
         }
 
     ESCALATION_WEIGHTS = {

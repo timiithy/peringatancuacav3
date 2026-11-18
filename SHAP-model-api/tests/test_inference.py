@@ -60,7 +60,7 @@ class TestActionEscalation:
         result = engine.predict(data)
         assert "Siaga Penuh" in result["action_recommendation"]
 
-    def test_empty_input_returns_safe_message(self, engine):
+    def test_empty_input_returns_insufficient_evidence(self, engine):
         data = {
             "lik_codes": [],
             "active_warning": [],
@@ -68,12 +68,13 @@ class TestActionEscalation:
         }
         result = engine.predict(data)
         assert result["triggered_lik_codes"] == []
-        assert "Tidak ada rekomendasi" in result["action_recommendation"]
+        assert result["inference_status"] == "insufficient_evidence"
+        assert "Bukti belum cukup" in result["action_recommendation"]
 
 
 class TestResponseShape:
 
-    def test_response_has_all_five_fields(self, engine):
+    def test_response_preserves_fields_and_adds_evidence_status(self, engine):
         data = {
             "lik_codes": ["wn-3"],
             "active_warning": [],
@@ -81,7 +82,9 @@ class TestResponseShape:
         }
         result = engine.predict(data)
         expected_keys = {"active_warning", "sign_description", "community_characteristics", "action_recommendation", "triggered_lik_codes"}
-        assert set(result.keys()) == expected_keys
+        assert expected_keys <= set(result.keys())
+        assert result["inference_status"] == "evaluated"
+        assert result["unranked_lik_codes"] == []
 
     def test_triggered_lik_codes_matches_active_warning(self, engine):
         data = {

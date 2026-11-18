@@ -83,6 +83,28 @@ import reportSubmitRoute from "./report-submit";
 
 const app = new Hono().route("/api", reportRoute).route("/api", reportSubmitRoute);
 
+type TestReceipt = {
+	ok: boolean;
+	status?: string;
+	inferenceStatus?: string;
+	shouldDistribute: boolean;
+	message: string;
+	reportId: string;
+	deduped?: boolean;
+	processedAtServer: number;
+	signAssessment: { unrankedCodes: string[] };
+	alertEvent: {
+		input: { lik_codes: string[]; active_warning: string[] };
+		decision: { is_multisign: boolean };
+		reporterCount: number;
+		ml: { triggered_lik_codes: string[] };
+	};
+};
+
+async function testReceipt(response: Response) {
+	return await response.json() as TestReceipt;
+}
+
 describe("POST /api/report", () => {
 	test("retries a below-threshold report without counting it twice and logs original sync delay", async () => {
 		const cache = new Map<string, string>();
@@ -137,6 +159,154 @@ describe("POST /api/report", () => {
 		mockCheckRateLimit.mockClear().mockResolvedValue({ allowed: true, count: 1, limit: 15 });
 		mockGet.mockResolvedValue(null);
 		mockSet.mockResolvedValue("OK");
+	});
+
+	function submitSigns(method: "POST" | "GET", codes: unknown[], observedAt = Date.now(), id?: string) {
+		return method === "POST"
+			? app.request("/api/report", {
+				method, headers: { "content-type": "application/json" },
+				body: JSON.stringify({ beach_location: "pantai_lampuuk", lik_codes: codes, observedAt, ...(id && { clientReportId: id }) }),
+			})
+			: app.request(`/api/report/submit?${new URLSearchParams({
+				beach_location: "pantai_lampuuk", lik_codes: codes.join(","), channel: "WA",
+				observed_at: String(observedAt), ...(id && { message_id: id }),
+			})}`, { headers: { authorization: "Bearer test-gateway-token" } });
+	}
+
+	for (const method of ["POST", "GET"] as const) {
+		for (const number of [10, 11, 12, 14, 15, 16, 17]) {
+			test(`${method} records Wn-${number} without inference or warning side effects`, async () => {
+				const code = `WN-${number}`;
+				const response = await submitSigns(method, [code]);
+				expect(response.status).toBe(200);
+				const receipt = await testReceipt(response);
+				expect(receipt.ok).toBe(true);
+				expect(receipt.status).toBe("pending_validation");
+				expect(receipt.inferenceStatus).toBe("insufficient_evidence");
+				expect(receipt.shouldDistribute).toBe(false);
+				expect(receipt.message).toContain("Bukti belum cukup");
+				expect(receipt.signAssessment.unrankedCodes).toEqual([`Wn-${number}`]);
+				expect(mockPersistReport.mock.calls[0]![0].naturalSigns).toEqual([code]);
+				expect(mockPersistAcknowledgement).toHaveBeenCalledTimes(1);
+				expect(mockProcessReport).not.toHaveBeenCalled();
+				expect(mockGetActiveWarning).not.toHaveBeenCalled();
+				expect(mockPersistShapPrediction).not.toHaveBeenCalled();
+				expect(mockReassure).not.toHaveBeenCalled();
+				expect(mockSetActiveWarning).not.toHaveBeenCalled();
+				expect(mockPublish).not.toHaveBeenCalled();
+				expect(mockPublishIotAlertForEvent).not.toHaveBeenCalled();
+				expect(mockSendOpenClawAlert).not.toHaveBeenCalled();
+				expect(mockResetQueues).not.toHaveBeenCalled();
+			});
+		}
+
+		test(`${method} mixed reports preserve all signs but only rank accepted signs for warnings`, async () => {
+			primeTriggered("WASPADA");
+			mockGetActiveWarning.mockResolvedValue({ codes: ["WN-16", "WN-3"], alertId: "old" });
+			const restore = mockTriggeredFetch();
+			try {
+				const response = await submitSigns(method, ["WN-1", "WN-16", "wn-1"]);
+				const receipt = await testReceipt(response);
+				expect(response.status).toBe(200);
+				expect(mockPersistReport.mock.calls[0]![0].naturalSigns).toEqual(["WN-1", "WN-16", "wn-1"]);
+				expect(mockProcessReport.mock.calls[0]![1]).toEqual(["Wn-1"]);
+				expect(receipt.alertEvent.input.lik_codes).toEqual(["Wn-1"]);
+				expect(receipt.alertEvent.input.active_warning).toEqual(["Wn-3"]);
+				expect(receipt.alertEvent.decision.is_multisign).toBe(false);
+				expect(receipt.signAssessment.unrankedCodes).toEqual(["Wn-16"]);
+				expect(receipt.message).toContain("belum memiliki aturan");
+				expect(JSON.stringify(mockSetActiveWarning.mock.calls)).not.toContain("Wn-16");
+			} finally { restore(); }
+		});
+
+		test(`${method} an explicit empty model result cannot create an alert`, async () => {
+			primeTriggered("SIAGA");
+			const originalFetch = globalThis.fetch;
+			globalThis.fetch = mock(async () => Response.json({
+				active_warning: [], triggered_lik_codes: [], community_characteristics: "Actionable",
+				action_recommendation: "No action", sign_description: "No signs",
+			})) as unknown as typeof fetch;
+			try {
+				const response = await submitSigns(method, ["WN-1"]);
+				const receipt = await testReceipt(response);
+				expect(receipt.inferenceStatus).toBe("insufficient_evidence");
+				expect(receipt.alertEvent).toBeUndefined();
+				expect(mockReassure).not.toHaveBeenCalled();
+				expect(mockSetActiveWarning).not.toHaveBeenCalled();
+				expect(mockPublish).not.toHaveBeenCalled();
+				expect(mockPublishIotAlertForEvent).not.toHaveBeenCalled();
+				expect(mockSendOpenClawAlert).not.toHaveBeenCalled();
+			} finally { globalThis.fetch = originalFetch; }
+		});
+
+		test(`${method} model-rejected ranked signs do not inflate severity or counts`, async () => {
+			primeTriggered("WASPADA");
+			mockProcessReport.mockResolvedValue({ triggeredCodes: ["Wn-1", "Wn-4"], codeCounts: { "Wn-1": 5, "Wn-4": 5 } });
+			const restore = mockTriggeredFetch();
+			try {
+				const receipt = await testReceipt(await submitSigns(method, ["WN-1", "WN-4", "WN-16"]));
+				expect(receipt.alertEvent.decision.is_multisign).toBe(false);
+				expect(receipt.alertEvent.reporterCount).toBe(5);
+				expect(receipt.alertEvent.ml.triggered_lik_codes).toEqual(["Wn-1"]);
+			} finally { restore(); }
+		});
+
+		test(`${method} stale provisional signs still receive historical receipts`, async () => {
+			const receipt = await testReceipt(await submitSigns(method, ["WN-16"], Date.now() - 3600000));
+			expect(receipt.status).toBe("archived");
+			expect(mockProcessReport).not.toHaveBeenCalled();
+		});
+
+		test(`${method} queued mixed reports retain the provisional explanation`, async () => {
+			mockProcessReport.mockResolvedValue({ triggeredCodes: [], codeCounts: { "Wn-1": 1 } });
+			const receipt = await testReceipt(await submitSigns(method, ["WN-1", "WN-16"]));
+			expect(receipt.status).toBe("queued");
+			expect(receipt.message).toContain("Wn-16");
+			expect(receipt.message).toContain("belum memiliki aturan");
+			expect(mockProcessReport.mock.calls[0]![1]).toEqual(["Wn-1"]);
+		});
+
+		test(`${method} provisional receipt replay preserves acknowledgement without aggregation`, async () => {
+			const records = new Map<string, { id: string; rawBody: Record<string, unknown> }>();
+			mockPersistReport.mockImplementation(async (input) => {
+				const id = input.id as string;
+				if (!records.has(id)) records.set(id, { id, rawBody: input.rawBody as Record<string, unknown> });
+				return records.get(id)!;
+			});
+			mockPersistAcknowledgement.mockImplementation(async (report, response) => {
+				records.get(report.id)!.rawBody.acknowledgement = response;
+			});
+			const id = crypto.randomUUID();
+			const observedAt = Date.now();
+			const first = await testReceipt(await submitSigns(method, ["WN-16"], observedAt, id));
+			const second = await testReceipt(await submitSigns(method, ["WN-16"], observedAt, id));
+			expect(first.status).toBe("pending_validation");
+			expect(second.deduped).toBe(true);
+			expect(second.reportId).toBe(first.reportId);
+			expect(second.processedAtServer).toBe(first.processedAtServer);
+			expect(mockPersistAcknowledgement).toHaveBeenCalledTimes(1);
+			expect(mockProcessReport).not.toHaveBeenCalled();
+		});
+	}
+
+	test("rejects malformed and unknown signs before persistence", async () => {
+		for (const codes of [[null], [4], ["WN-18"], ["WN-1", "unknown"]]) {
+			expect((await submitSigns("POST", codes)).status).toBe(400);
+		}
+		expect((await submitSigns("GET", ["WN-18"])).status).toBe(400);
+		expect(mockPersistReport).not.toHaveBeenCalled();
+	});
+
+	test("authenticated WhatsApp POST accepts provisional signs as observations", async () => {
+		const response = await app.request("/api/report", {
+			method: "POST", headers: { "content-type": "application/json", authorization: "Bearer test-gateway-token" },
+			body: JSON.stringify({ beach_location: "pantai_lampuuk", lik_codes: ["WN-16"], _channel: "WA", observedAt: Date.now() }),
+		});
+		expect(response.status).toBe(200);
+		expect((await testReceipt(response)).status).toBe("pending_validation");
+		expect(mockPersistReport.mock.calls[0]![0].source).toBe("WHATSAPP");
+		expect(mockProcessReport).not.toHaveBeenCalled();
+		expect(mockPublish).not.toHaveBeenCalled();
 	});
 
 	test("different browser reports preserve one pseudonym, including historical receipts", async () => {

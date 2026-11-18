@@ -44,6 +44,36 @@ test("WhatsApp never uses webhook arrival to invent observation time", async () 
   expect(replies[0]).toContain("waktu=sekarang");
 });
 
+test("WhatsApp provisional acknowledgement does not promise a warning or more threshold votes", async () => {
+  const message = "Laporan Wn-16 dicatat. Bukti belum cukup untuk inferensi tanda alam.";
+  globalThis.fetch = mock(async () => Response.json({
+    ok: true, reportId: "provisional-wa", status: "pending_validation",
+    inferenceStatus: "insufficient_evidence", shouldDistribute: false, message,
+  })) as unknown as typeof fetch;
+  await app.request("/api/openclaw/webhook", {
+    method: "POST", headers,
+    body: JSON.stringify({ direction: "incoming", from: "fisherman", timestamp: Date.now(), text: "!lapor lampuuk WN-16 waktu=sekarang" }),
+  });
+  expect(replies).toEqual([message]);
+  expect(replies[0]).not.toContain("threshold");
+  expect(replies[0]).not.toContain("Aman");
+});
+
+test("WhatsApp mixed-report reply preserves the provisional note and current warning label", async () => {
+  globalThis.fetch = mock(async () => Response.json({
+    ok: true, status: "triggered", shouldDistribute: true,
+    message: "Wn-16 dicatat dan belum digunakan untuk peringatan.",
+    alertEvent: { riskLevel: "waspada", reporterCount: 1 },
+  })) as unknown as typeof fetch;
+  await app.request("/api/openclaw/webhook", {
+    method: "POST", headers,
+    body: JSON.stringify({ direction: "incoming", from: "fisherman", text: "!lapor lampuuk WN-4 WN-16 waktu=sekarang" }),
+  });
+  expect(replies[0]).toContain("WASPADA");
+  expect(replies[0]).toContain("Wn-16 dicatat");
+  expect(replies[0]).not.toContain("Aman");
+});
+
 test("WhatsApp explicit sekarang uses original message creation, including delayed delivery", async () => {
   const timestamp = Date.parse("2026-10-15T08:00:00+07:00");
   await app.request("/api/openclaw/webhook", { method: "POST", headers, body: JSON.stringify({ direction: "incoming", from: "fisherman", timestamp, text: "!lapor lampuuk angin kencang waktu=sekarang" }) });

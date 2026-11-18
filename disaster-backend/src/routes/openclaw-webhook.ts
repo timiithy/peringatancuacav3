@@ -71,12 +71,16 @@ async function handleLapor(text: string, chatId: string, event: OpenClawWebhookE
 			return `${data.message}${data.status === "time_uncertain" ? " Sertakan waktu pengamatan dengan zona waktu (waktu=YYYY-MM-DDTHH:mm:ss+07:00). Untuk tanda yang terlihat saat menulis pesan, gunakan waktu=sekarang; pilihan ini memerlukan waktu asli pesan dari WhatsApp." : ""} Jika kondisi masih terjadi, amati kembali dan kirim laporan baru.`;
 		}
 
+		if (data.status === "pending_validation") {
+			return data.message;
+		}
+
 		if (data.status === "triggered") {
 			const alertEvent = data.alertEvent;
 			const riskLabel =
-				alertEvent.riskLevel === "unsafe-high"
+				["unsafe-high", "siaga", "ekstrem"].includes(alertEvent.riskLevel)
 					? "🔴 BAHAYA"
-					: alertEvent.riskLevel === "unsafe"
+					: ["unsafe", "waspada"].includes(alertEvent.riskLevel)
 						? "🟡 WASPADA"
 						: "✅ Aman";
 
@@ -85,7 +89,8 @@ async function handleLapor(text: string, chatId: string, event: OpenClawWebhookE
 				`⚠️ THRESHOLD TERLAMPAUI — ${riskLabel}`,
 				`Pantai: ${result.beachLocation}`,
 				`Jumlah pelapor: ${alertEvent.reporterCount}`,
-				"Peringatan sedang dikirim ke semua nelayan.",
+				data.shouldDistribute ? "Peringatan sedang dikirim ke semua nelayan." : "Laporan telah dievaluasi; tidak ada peringatan baru yang dikirim.",
+				...(data.message ? [data.message] : []),
 			].join("\n");
 		}
 
@@ -94,6 +99,7 @@ async function handleLapor(text: string, chatId: string, event: OpenClawWebhookE
 			`Tanda: ${result.likCodes.join(", ")}`,
 			`Pantai: ${result.beachLocation}`,
 			"Menunggu laporan lain untuk mencapai threshold.",
+			...(data.message ? [data.message] : []),
 		].join("\n");
 	} catch (err) {
 		console.error("[openclaw-webhook] lapor fetch error:", err);

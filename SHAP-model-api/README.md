@@ -1,4 +1,64 @@
 # Dokumentasi Skenario Pengujian API (Hybrid SHAP)
+
+## Current `/predict` beach-rule integration
+
+The endpoint selects the server-owned community profile from
+`src/engine/community_rule_categorization.csv` using `beach_location`, then passes
+all six rule fields into `InferenceEngine.predict()` as `rules`. Legacy
+`beach_id`/`beach_name` values and client-supplied rules do not select or override
+the profile. An unsupported beach slug returns HTTP 400.
+
+When at least one ranked sign is evaluated, the current CSV and classification
+logic produce:
+
+| `beach_location` | CSV `Overall Category` | Response `community_characteristics` |
+| --- | --- | --- |
+| `pantai_lampuuk` | Safe | Actionable |
+| `pantai_lhoknga` | Safe | Actionable |
+| `pantai_ulee_lheue` | Safe | Actionable |
+| `pantai_depok` | Unsafe | Low Actionable |
+| `pantai_samas` | Unsafe | Low Actionable |
+
+These are community-profile classifications, not current weather measurements.
+Previously the endpoint omitted `rules`, causing every beach to default to
+`Actionable`. Depok's interaction-status lookup now also reads Depok's own row.
+
+Both app and WhatsApp reports already send `beach_location` through the backend,
+so no client payload changes are needed. The response still contains
+`active_warning`, `sign_description`, `community_characteristics`,
+`action_recommendation`, and `triggered_lik_codes`. It also returns
+`inference_status` (`evaluated` or `insufficient_evidence`) and
+`unranked_lik_codes`.
+
+`src/engine/sign_trust.json` records Table B's five high-trust signs, five
+low-trust signs, and seven unranked signs. All 17 signs have descriptions. Only
+ranked signs participate in action lookup; the action CSV is unchanged. With no
+ranked evidence, `community_characteristics` becomes `Insufficient Evidence`,
+and the recommendation explains the lack of validated evidence instead of
+asserting safe conditions. Mixed reports retain unranked codes separately.
+
+Both backend submission routes store the complete report, then queue ranked
+codes only. Fresh unranked-only reports receive a durable `pending_validation`
+acknowledgement, without calling inference, refreshing warnings or broadcasting.
+They are not indefinitely queued waiting for more votes. See
+`../docs/strong-wind-rule-mapping.md` for the policy and rollout details.
+
+The backend currently maps `Low Actionable` to a local `NORMAL` level; BMKG can
+still raise the final level. This integration therefore changes warning outcomes
+for Depok and Samas by applying the existing profile policy. No new action
+recommendations or numeric trust weights are introduced. Explanation generation
+remains separate from this change.
+
+Run the beach-rule API regression tests and existing engine tests from this
+directory:
+
+```text
+python -m pytest tests/test_beach_rules_api.py tests/test_inference.py tests/test_provisional_signs.py -q
+```
+
+The scenarios below are historical examples; their response fields differ from
+the current endpoint contract described above.
+
 Gunakan kumpulan JSON di bawah ini untuk menguji endpoint /predict pada API. Seluruh skenario didasarkan pada ambang batas matematis (tipping points) yang diekstraksi dari analisis dan pemodelan rule based SHAP.
 
 ## Skenario 1: Community Unsafe & Tanda dalam Trust Index
