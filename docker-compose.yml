@@ -41,12 +41,15 @@ services:
       PORT: "3000"
       REDIS_URL: redis://redis:6379
       ML_BASE_URL: http://ml:8000
+      LIVE_OBSERVATION_WINDOW_MS: ${LIVE_OBSERVATION_WINDOW_MS:-1800000}
       DATABASE_URL: sqlite:///app/data/disaster.db
       BASE_URL: ${BASE_URL:-https://api.samudraapp.id}
       JWT_AUTH_ENABLED: ${JWT_AUTH_ENABLED:-false}
       JWT_SECRET: ${JWT_SECRET:-}
       OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:-}
       OPENCLAW_HOOK_TOKEN: ${OPENCLAW_HOOK_TOKEN:-}
+      OPENCLAW_WEBHOOK_TOKEN: ${OPENCLAW_WEBHOOK_TOKEN:-}
+      REPORTER_HMAC_SECRET: ${REPORTER_HMAC_SECRET:-}
       OPENCLAW_BROADCAST_GROUPS: ${OPENCLAW_BROADCAST_GROUPS:-}
       WEATHERAPI_KEY: ${WEATHERAPI_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
@@ -113,6 +116,7 @@ services:
       GATEWAY_WS_URL: ws://openclaw-openclaw-gateway-1:18789
       GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       BACKEND_WEBHOOK_URL: http://peringatan-backend:3000/api/openclaw/webhook
+      OPENCLAW_WEBHOOK_TOKEN: ${OPENCLAW_WEBHOOK_TOKEN:-}
     depends_on:
       - backend
     networks:

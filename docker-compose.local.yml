@@ -47,9 +47,12 @@ services:
       PORT: "3000"
       REDIS_URL: redis://redis:6379
       ML_BASE_URL: http://ml:8000
+      LIVE_OBSERVATION_WINDOW_MS: ${LIVE_OBSERVATION_WINDOW_MS:-1800000}
       DATABASE_URL: sqlite:///app/data/disaster.db
       BASE_URL: http://localhost:3000
       JWT_AUTH_ENABLED: "false"
+      OPENCLAW_WEBHOOK_TOKEN: ${OPENCLAW_WEBHOOK_TOKEN:-}
+      REPORTER_HMAC_SECRET: ${REPORTER_HMAC_SECRET:-}
       ENABLE_IOT_MQTT_DELIVERY: "true"
       MQTT_BROKER_URL: mqtt://mosquitto:1883
       MQTT_TOPIC_PREFIX: alert

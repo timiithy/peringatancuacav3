@@ -1,0 +1,533 @@
+{
+  "date": "2026-11-17",
+  "status": "approved-and-applied",
+  "totalPreviewBytes": 146671,
+  "items": [
+    {
+      "id": 1,
+      "kind": "motion",
+      "ref": "clouds",
+      "note": "Original motion sketch: a cloud lowers and gathers, shown as three numbered observations. The reference photo establishes cloud appearance only; it does not document the three repetitions.",
+      "asset": "assets/wn-1.svg",
+      "bytes": 1753,
+      "label": "Awan tampak turun dan menggumpal hingga tiga kali"
+    },
+    {
+      "id": 2,
+      "kind": "motion",
+      "ref": "clouds",
+      "note": "Original motion sketch: separate cloud masses approach and meet. A single cloud photo cannot show that change.",
+      "asset": "assets/wn-2.svg",
+      "bytes": 1247,
+      "label": "Beberapa gumpalan awan tampak saling mendekat atau menyatu"
+    },
+    {
+      "id": 3,
+      "kind": "photo",
+      "ref": "lightning",
+      "note": "Real lightning over the sea. Keep the wording about one side / alternating sides; this still does not demonstrate timing. Optional slow two-panel illustration if the sequence needs more explanation.",
+      "asset": "assets/lightning.webp",
+      "bytes": 14522,
+      "label": "Petir terlihat di satu sisi langit atau bergantian di dua sisi"
+    },
+    {
+      "id": 4,
+      "kind": "diagram",
+      "note": "Original comparison: small, closely spaced waves become larger, closely spaced waves. This is a schematic, not a measured wave-height scale or time interval.",
+      "asset": "assets/wn-4.svg",
+      "bytes": 1342,
+      "label": "Ombak berubah dari kecil dan rapat menjadi besar dan berdekatan"
+    },
+    {
+      "id": 5,
+      "kind": "photo",
+      "ref": "dolphin-common",
+      "alternate": "dolphin-front",
+      "note": "Dolphins photographed riding a boat’s bow wave. The animal is clear at card size. The boat is outside the frame, and the photo does not establish intent to guide it; retain the full observation wording.",
+      "asset": "assets/dolphin-common.webp",
+      "bytes": 35264,
+      "label": "Lumba-lumba mendekati perahu, seolah-olah menuntun arah"
+    },
+    {
+      "id": 6,
+      "kind": "photo",
+      "ref": "gull-motion",
+      "note": "Seagull in flight; the source describes motion blur. Speed and loud calls remain explicit in the text. No autoplay audio.",
+      "asset": "assets/gull-motion.webp",
+      "bytes": 6386,
+      "label": "Burung camar terbang cepat sambil bersuara keras"
+    },
+    {
+      "id": 7,
+      "kind": "diagram",
+      "note": "Original season-transition diagram: Musim angin barat → Musim angin timur. This represents a change of season, not the direction of a single gust.",
+      "asset": "assets/wn-7.svg",
+      "bytes": 1326,
+      "label": "Sedang terjadi pergantian musim angin barat ke angin timur"
+    },
+    {
+      "id": 8,
+      "kind": "photo",
+      "ref": "overcast",
+      "note": "Overcast sea with daylight still visible. Review whether this brightness matches “tidak terlalu gelap”; avoid swapping it for a severe, nearly black storm image.",
+      "asset": "assets/overcast.webp",
+      "bytes": 6286,
+      "label": "Langit tertutup awan, tetapi tidak terlalu gelap"
+    },
+    {
+      "id": 9,
+      "kind": "photo",
+      "ref": "rain",
+      "note": "Rain shafts over the sea. A photo cannot establish the local wind season; “saat musim angin timur” stays in the text.",
+      "asset": "assets/rain.webp",
+      "bytes": 12310,
+      "label": "Hujan turun atau awan tebal menutupi langit saat musim angin timur"
+    },
+    {
+      "id": 10,
+      "kind": "photo",
+      "ref": "clear-blue",
+      "note": "A genuinely cloudless blue sky. The source landscape is in Wales, so this is an appearance example only. Keep the west-wind season in the description; do not label the photo as an Indonesian observation.",
+      "asset": "assets/clear-blue.webp",
+      "bytes": 42778,
+      "label": "Langit cerah tanpa awan saat musim angin barat"
+    },
+    {
+      "id": 11,
+      "kind": "motion",
+      "note": "Original ear and sound-wave illustration for a loud rumble, one to seven times. Avoid a lightning photograph: it would add a visual condition that this sound-only indicator does not require.",
+      "asset": "assets/wn-11.svg",
+      "bytes": 1166,
+      "label": "Terdengar suara gemuruh keras, sekali atau hingga tujuh kali"
+    },
+    {
+      "id": 12,
+      "kind": "motion",
+      "ref": "stars",
+      "note": "Original gentle twinkling star sketch, with a real night-sky reference. The animation explains twinkling; the west-wind season stays in text. Reference exposure is not a naked-eye visibility standard.",
+      "asset": "assets/wn-12.svg",
+      "bytes": 3202,
+      "label": "Banyak bintang tampak berkelap-kelip saat musim angin barat"
+    },
+    {
+      "id": 13,
+      "kind": "diagram",
+      "ref": "night",
+      "note": "Original dark sky without visible stars. The reference photo is rejected for use because street lighting could imply an unrelated cause. Keep the east-wind season in text.",
+      "asset": "assets/wn-13.svg",
+      "bytes": 784,
+      "label": "Bintang tidak terlihat pada malam hari saat musim angin timur"
+    },
+    {
+      "id": 14,
+      "kind": "photo",
+      "ref": "halo",
+      "note": "Moon halo with nearby points of light as a visual reference. A larger annotated moon/star diagram could clarify the relationship at small sizes. The image is not evidence of the season or an exact local observation.",
+      "asset": "assets/halo.webp",
+      "bytes": 1534,
+      "label": "Bintang tampak dekat atau sejajar dengan bulan, termasuk di dalam lingkaran cahaya bulan"
+    },
+    {
+      "id": 15,
+      "kind": "motion",
+      "ref": "cockroach",
+      "note": "Original simplified cockroaches flying above the inside of a boat. Search found insect/wing references, but no suitable reusable photo of this exact behavior in a boat. This is an illustration, not documentary footage.",
+      "asset": "assets/wn-15.svg",
+      "bytes": 2497,
+      "label": "Kecoa beterbangan di dalam perahu"
+    },
+    {
+      "id": 16,
+      "kind": "diagram",
+      "ref": "scorpius",
+      "note": "Simplified illustration of the approved arrangement: the Moon is clearly positioned between two highlighted claws, with Indonesian labels and a recognizable curved constellation tail. This replaces the detailed reference chart.",
+      "asset": "assets/wn-16.svg",
+      "bytes": 2612,
+      "label": "Bulan terlihat di antara dua capit rasi bintang Kalajengking (Bintang Kala)"
+    },
+    {
+      "id": 17,
+      "kind": "photo",
+      "ref": "whale",
+      "alternate": "whale-motion",
+      "note": "Real tail-slap photograph. A reusable slow-motion clip is also linked; its 80 MB original is unsuitable for direct loading. If animation is chosen, trim and compress a short excerpt to the motion budget before adding it.",
+      "asset": "assets/whale.webp",
+      "bytes": 11662,
+      "label": "Paus muncul ke permukaan dan mengibaskan ekornya"
+    }
+  ],
+  "sources": {
+    "clouds": [
+      {
+        "title": "File:Clouds, cloudscape over Lombok Strait, West Nusa Tenggara, Indonesia.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Clouds,_cloudscape_over_Lombok_Strait,_West_Nusa_Tenggara,_Indonesia.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Clouds%2C_cloudscape_over_Lombok_Strait%2C_West_Nusa_Tenggara%2C_Indonesia.jpg/960px-Clouds%2C_cloudscape_over_Lombok_Strait%2C_West_Nusa_Tenggara%2C_Indonesia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Clouds%2C_cloudscape_over_Lombok_Strait%2C_West_Nusa_Tenggara%2C_Indonesia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 4032,
+        "height": 2688,
+        "originalBytes": 5927973,
+        "author": "Vyacheslav Argenberg",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+        "description": "Calm equatorial tropical thunderstorm clouds over the Lombok Strait, Gili Islands, Sunda Islands, West Nusa Tenggara, Indonesia in the intertropical convergence zone (ITCZ). The area can be roughly considered a divide between the Indian and Pacific Oceans.",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/clouds.jpg",
+        "previewBytes": 129814
+      }
+    ],
+    "lightning": [
+      {
+        "title": "File:Lightning storm over ocean.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Lightning_storm_over_ocean.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Lightning_storm_over_ocean.jpg/960px-Lightning_storm_over_ocean.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Lightning_storm_over_ocean.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 5929,
+        "height": 3951,
+        "originalBytes": 10410080,
+        "author": "\nbigwavephoto",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "description": "",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/lightning.jpg",
+        "previewBytes": 81074,
+        "optimizedPreview": "assets/lightning.webp",
+        "optimizedBytes": 14522
+      }
+    ],
+    "dolphin": [
+      {
+        "title": "File:Burrunan Dolphin bow riding 2011.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Burrunan_Dolphin_bow_riding_2011.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Burrunan_Dolphin_bow_riding_2011.jpg/960px-Burrunan_Dolphin_bow_riding_2011.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/4/41/Burrunan_Dolphin_bow_riding_2011.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 1021,
+        "height": 680,
+        "originalBytes": 428762,
+        "author": "Michael J Fromholtz",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "description": "Burrunan Dolphin Bow Riding in Port Phillip Bay Victoria Australia",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/dolphin.jpg",
+        "previewBytes": 97498
+      }
+    ],
+    "gull": [
+      {
+        "title": "File:Seagull flying.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Seagull_flying.jpg",
+        "preview": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Seagull_flying.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Seagull_flying.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 700,
+        "height": 500,
+        "originalBytes": 95655,
+        "author": "Maximilian Albert",
+        "license": "Public domain",
+        "licenseUrl": "",
+        "description": "Flying Lesser Black-backed Gull Larus fuscus (picture taken from a boat in the archipelago near Stockholm)",
+        "credit": "Picture taken by me",
+        "restrictions": ""
+      }
+    ],
+    "overcast": [
+      {
+        "title": "File:Shaheed Island, Andaman Sea, Overcast sky.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Shaheed_Island,_Andaman_Sea,_Overcast_sky.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/91/Shaheed_Island%2C_Andaman_Sea%2C_Overcast_sky.jpg/960px-Shaheed_Island%2C_Andaman_Sea%2C_Overcast_sky.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/9/91/Shaheed_Island%2C_Andaman_Sea%2C_Overcast_sky.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 4032,
+        "height": 2688,
+        "originalBytes": 5271021,
+        "author": "Vyacheslav Argenberg",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+        "description": "Shaheed Dweep, Neil Island, Andaman and Nicobar Islands, India.",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/overcast.jpg",
+        "previewBytes": 57691,
+        "optimizedPreview": "assets/overcast.webp",
+        "optimizedBytes": 6286
+      }
+    ],
+    "rain": [
+      {
+        "title": "File:A rain over the sea - panoramio.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:A_rain_over_the_sea_-_panoramio.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/A_rain_over_the_sea_-_panoramio.jpg/960px-A_rain_over_the_sea_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/3/3e/A_rain_over_the_sea_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 3406,
+        "height": 2267,
+        "originalBytes": 3528320,
+        "author": "Laima Gūtmane (simka…",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "description": "A rain over the sea",
+        "credit": "https://web.archive.org/web/20161023234905/http://www.panoramio.com/photo/61544805",
+        "restrictions": "",
+        "localPreview": "references/rain.jpg",
+        "previewBytes": 86596,
+        "optimizedPreview": "assets/rain.webp",
+        "optimizedBytes": 12310
+      }
+    ],
+    "clear": [
+      {
+        "title": "File:Clear sky in İstanbul.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Clear_sky_in_%C4%B0stanbul.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Clear_sky_in_%C4%B0stanbul.jpg/960px-Clear_sky_in_%C4%B0stanbul.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Clear_sky_in_%C4%B0stanbul.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 4032,
+        "height": 3024,
+        "originalBytes": 1836595,
+        "author": "Talhaaisk",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "description": "Clear sky in İstanbul",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/clear.jpg",
+        "previewBytes": 84552
+      }
+    ],
+    "stars": [
+      {
+        "title": "File:Stars 01 (MK).jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Stars_01_(MK).jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Stars_01_%28MK%29.jpg/960px-Stars_01_%28MK%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Stars_01_%28MK%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 6070,
+        "height": 2000,
+        "originalBytes": 8835374,
+        "author": "Mathias Krumbholz",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "description": "Part (~280°) of the starry sky near Brandenburg an der Havel (Germany), close to midnight.",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/stars.jpg",
+        "previewBytes": 82721
+      }
+    ],
+    "halo": [
+      {
+        "title": "File:Moon HALO Effect.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Moon_HALO_Effect.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/10/Moon_HALO_Effect.jpg/960px-Moon_HALO_Effect.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/1/10/Moon_HALO_Effect.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 4256,
+        "height": 2832,
+        "originalBytes": 4147598,
+        "author": "LCRC Photographer",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+        "description": "Moon Halo Effect",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/halo.jpg",
+        "previewBytes": 17236,
+        "optimizedPreview": "assets/halo.webp",
+        "optimizedBytes": 1534
+      }
+    ],
+    "scorpius": [
+      {
+        "title": "File:Scorpius IAU.svg",
+        "source": "https://commons.wikimedia.org/wiki/File:Scorpius_IAU.svg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Scorpius_IAU.svg/960px-Scorpius_IAU.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/3/38/Scorpius_IAU.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 604,
+        "height": 747,
+        "originalBytes": 635903,
+        "author": "IAU and Sky & Telescope magazine (Roger Sinnott & Rick Fienberg)",
+        "license": "CC BY 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+        "description": "IAU Scorpius chart",
+        "credit": "[1]",
+        "restrictions": "",
+        "localPreview": "references/scorpius.png",
+        "previewBytes": 390558
+      }
+    ],
+    "whale": [
+      {
+        "title": "File:Whale Tail Slap 129.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Whale_Tail_Slap_129.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Whale_Tail_Slap_129.jpg/960px-Whale_Tail_Slap_129.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Whale_Tail_Slap_129.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 1070,
+        "height": 701,
+        "originalBytes": 188263,
+        "author": "Gillfoto",
+        "license": "CC BY-SA 3.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+        "description": "Whale Tail Slap",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/whale.jpg",
+        "previewBytes": 72770,
+        "optimizedPreview": "assets/whale.webp",
+        "optimizedBytes": 11662
+      }
+    ],
+    "whale-motion": [
+      {
+        "title": "File:032 Humpback whale lobtailing in slow motion Video by Giles Laurent.webm",
+        "source": "https://commons.wikimedia.org/wiki/File:032_Humpback_whale_lobtailing_in_slow_motion_Video_by_Giles_Laurent.webm",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/032_Humpback_whale_lobtailing_in_slow_motion_Video_by_Giles_Laurent.webm/960px--032_Humpback_whale_lobtailing_in_slow_motion_Video_by_Giles_Laurent.webm.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/f/fe/032_Humpback_whale_lobtailing_in_slow_motion_Video_by_Giles_Laurent.webm?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 3840,
+        "height": 2160,
+        "originalBytes": 84067968,
+        "author": "Giles Laurent",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "description": "Humpback whale (Megaptera novaeangliae) lobtailing filmed in slow motion at Ísafjarðardjúp (Iceland). It is believed that lobtailing is practiced by humpback whales either to communicate or as a mean of foraging.",
+        "credit": "Own work, from gileslaurent.com",
+        "restrictions": "",
+        "localPreview": "references/whale-motion.jpg",
+        "previewBytes": 108456
+      }
+    ],
+    "waves": [],
+    "dolphin-front": [
+      {
+        "title": "File:Common Bottlenose Dolphin (Tursiops truncatus) Catalina swimming in front of boat.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Common_Bottlenose_Dolphin_(Tursiops_truncatus)_Catalina_swimming_in_front_of_boat.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/Common_Bottlenose_Dolphin_%28Tursiops_truncatus%29_Catalina_swimming_in_front_of_boat.jpg/960px-Common_Bottlenose_Dolphin_%28Tursiops_truncatus%29_Catalina_swimming_in_front_of_boat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/3/31/Common_Bottlenose_Dolphin_%28Tursiops_truncatus%29_Catalina_swimming_in_front_of_boat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 4608,
+        "height": 3072,
+        "originalBytes": 3548791,
+        "author": "Kiloueka",
+        "license": "CC0",
+        "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "description": "Bottlenose dolphin playing alongside a small boat",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/dolphin-front.jpg",
+        "previewBytes": 127535
+      }
+    ],
+    "dolphin-common": [
+      {
+        "title": "File:Short-beaked Common Dolphin (Delphinus delphis) (14825276609).jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Short-beaked_Common_Dolphin_(Delphinus_delphis)_(14825276609).jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/93/Short-beaked_Common_Dolphin_%28Delphinus_delphis%29_%2814825276609%29.jpg/960px-Short-beaked_Common_Dolphin_%28Delphinus_delphis%29_%2814825276609%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/9/93/Short-beaked_Common_Dolphin_%28Delphinus_delphis%29_%2814825276609%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 1152,
+        "height": 699,
+        "originalBytes": 952094,
+        "author": "Gregory \"Slobirdr\" Smith",
+        "license": "CC BY-SA 2.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+        "description": "Riding the bow wave of our boat, this group of dolphins only stayed around for five minutes, but they were very athletic in their jumps,,,",
+        "credit": "Short-beaked Common Dolphin (Delphinus delphis)",
+        "restrictions": "",
+        "localPreview": "references/dolphin-common.jpg",
+        "previewBytes": 138966,
+        "optimizedPreview": "assets/dolphin-common.webp",
+        "optimizedBytes": 35264
+      }
+    ],
+    "clear-blue": [
+      {
+        "title": "File:Bright Blue Sky.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Bright_Blue_Sky.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/Bright_Blue_Sky.jpg/960px-Bright_Blue_Sky.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/6/6f/Bright_Blue_Sky.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 5184,
+        "height": 3456,
+        "originalBytes": 8628545,
+        "author": "WelshDave",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "description": "A bright and cloudless blue spring sky over Mynydd Twyn-glas in south-east Wales.",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/clear-blue.jpg",
+        "previewBytes": 179951,
+        "optimizedPreview": "assets/clear-blue.webp",
+        "optimizedBytes": 42778
+      }
+    ],
+    "sea-blue": [
+      {
+        "title": "File:The sea is clear and the sky is blue!.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:The_sea_is_clear_and_the_sky_is_blue!.jpg",
+        "preview": "https://upload.wikimedia.org/wikipedia/commons/6/69/The_sea_is_clear_and_the_sky_is_blue%21.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/6/69/The_sea_is_clear_and_the_sky_is_blue%21.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 960,
+        "height": 720,
+        "originalBytes": 83978,
+        "author": "Xaionara",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "description": "Just look at how perfect the view is! Breathtaking. I took it before we swam!",
+        "credit": "Own work",
+        "restrictions": ""
+      }
+    ],
+    "night": [
+      {
+        "title": "File:Cloudy night.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Cloudy_night.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/63/Cloudy_night.jpg/960px-Cloudy_night.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/6/63/Cloudy_night.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 2448,
+        "height": 3264,
+        "originalBytes": 1443270,
+        "author": "Abdallah Mounir",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+        "description": "A picture i took of the beautiful night sky on the way to the main gate",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/night.jpg",
+        "previewBytes": 265161
+      }
+    ],
+    "cockroach": [
+      {
+        "title": "File:Periplaneta australasiae wings.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Periplaneta_australasiae_wings.jpg",
+        "preview": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Periplaneta_australasiae_wings.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Periplaneta_australasiae_wings.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 720,
+        "height": 540,
+        "originalBytes": 56040,
+        "author": "Lucinda Gibson & Ken Walker",
+        "license": "CC BY 3.0 au",
+        "licenseUrl": "https://creativecommons.org/licenses/by/3.0/au/deed.en",
+        "description": "Periplaneta australasiae (Australian cockroach) wings",
+        "credit": "Walker, K. (2007) Australian Cockroach (Periplaneta australasiae), availabile online at http://www.padil.gov.au/pests-and-diseases/pest/main/136545/5906",
+        "restrictions": ""
+      }
+    ],
+    "gull-motion": [
+      {
+        "title": "File:Seagull flying over the beach with motion.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Seagull_flying_over_the_beach_with_motion.jpg",
+        "preview": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Seagull_flying_over_the_beach_with_motion.jpg/960px-Seagull_flying_over_the_beach_with_motion.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+        "original": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Seagull_flying_over_the_beach_with_motion.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "width": 6048,
+        "height": 4032,
+        "originalBytes": 458629,
+        "author": "Jdubphotography",
+        "license": "CC0",
+        "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "description": "A seagull flying over the beach with blur from motion",
+        "credit": "Own work",
+        "restrictions": "",
+        "localPreview": "references/gull-motion.jpg",
+        "previewBytes": 33746,
+        "optimizedPreview": "assets/gull-motion.webp",
+        "optimizedBytes": 6386
+      }
+    ]
+  }
+}

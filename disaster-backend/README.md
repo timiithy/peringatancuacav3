@@ -300,3 +300,7 @@ Generate keys:
 ```bash
 bun run push:vapid:generate
 ```
+
+## Reporter lookup
+
+Reports can retain pseudonymous browser or WhatsApp account attribution. Run `bun run reporter:lookup '<report-id>'` from this directory to inspect matching submissions through a read-only SQLite connection. See [configuration and limitations](../docs/reporter-attribution.md), including the two environment variables required for authenticated WhatsApp ingestion.

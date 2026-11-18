@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">Bulan di antara dua capit Bintang Kala</title>
+  <desc id="desc">Ilustrasi sederhana rasi Kalajengking. Dua ujung capit diberi lingkaran dan dihubungkan dengan garis putus-putus. Bulan terang berada di antara keduanya. Rangkaian bintang membentuk badan dan ekor yang melengkung.</desc>
+  <defs>
+    <radialGradient id="glow"><stop stop-color="#ffe5a0" stop-opacity=".28"/><stop offset="1" stop-color="#ffe5a0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="640" height="360" fill="#10243b"/>
+  <g fill="#a6c3dc" opacity=".45">
+    <circle cx="35" cy="60" r="2"/><circle cx="88" cy="177" r="2"/><circle cx="167" cy="47" r="1.5"/><circle cx="561" cy="176" r="2"/><circle cx="596" cy="69" r="1.5"/><circle cx="531" cy="259" r="1.5"/><circle cx="60" cy="270" r="1.5"/>
+  </g>
+  <g stroke="#96b8cf" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M297 101L350 150L393 190L470 119"/>
+    <path d="M393 190L347 216L307 249L300 278L259 293L210 281L172 254L184 227L210 215"/>
+  </g>
+  <g fill="#e6f1fa">
+    <circle cx="350" cy="150" r="4"/><circle cx="393" cy="190" r="5"/><circle cx="347" cy="216" r="5"/><circle cx="307" cy="249" r="4"/><circle cx="300" cy="278" r="4"/><circle cx="259" cy="293" r="4"/><circle cx="210" cy="281" r="4"/><circle cx="172" cy="254" r="4"/><circle cx="184" cy="227" r="4"/><circle cx="210" cy="215" r="5"/>
+  </g>
+  <path d="M309 102L458 118" stroke="#ffe5a0" stroke-width="2" stroke-dasharray="5 6" opacity=".65"/>
+  <g fill="#ffe5a0" stroke="#ffe5a0">
+    <circle cx="297" cy="101" r="13" fill="none" stroke-width="2"/><circle cx="297" cy="101" r="5"/>
+    <circle cx="470" cy="119" r="13" fill="none" stroke-width="2"/><circle cx="470" cy="119" r="5"/>
+  </g>
+  <circle cx="383" cy="110" r="57" fill="url(#glow)"/>
+  <circle cx="383" cy="110" r="22" fill="#fff2c7"/>
+  <g fill="#e4d3a4" opacity=".55"><circle cx="375" cy="103" r="5"/><circle cx="389" cy="116" r="7"/><circle cx="375" cy="118" r="3"/></g>
+  <g font-family="Arial,sans-serif" font-size="23" text-anchor="middle">
+    <text x="278" y="70" fill="#ffe5a0">Capit 1</text>
+    <text x="499" y="85" fill="#ffe5a0">Capit 2</text>
+    <text x="383" y="57" fill="#fff2c7" font-weight="bold">Bulan</text>
+    <path d="M383 65V82" stroke="#fff2c7" stroke-width="2"/>
+    <text x="149" y="163" fill="#b6d2e4" font-size="19">Bintang Kala</text>
+    <text x="320" y="338" fill="white" font-size="24">Bulan berada di antara dua capit</text>
+  </g>
+</svg>

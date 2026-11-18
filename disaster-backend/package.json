@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "reporter:lookup": "bun run src/cli/reporter.ts",
     "push:vapid:generate": "bunx web-push generate-vapid-keys",
     "stage6:reset": "bun run scripts/stage6/reset-run.ts",
     "stage6:run": "bun run scripts/stage6/run-iteration.ts",

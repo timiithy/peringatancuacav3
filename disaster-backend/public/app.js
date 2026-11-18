@@ -10,6 +10,19 @@ const AUTH_REGISTER_ENDPOINT = "/api/auth/register";
 const AUTH_LOGIN_ENDPOINT = "/api/auth/login";
 const AUTH_LOGOUT_ENDPOINT = "/api/auth/logout";
 const API_TOKEN_KEY = "authToken";
+const REPORTER_STORAGE_KEY = "peringatan-reporter-browser-id:v1";
+
+async function getReporterBrowserId() {
+  const getOrCreate = () => {
+    const saved = localStorage.getItem(REPORTER_STORAGE_KEY);
+    if (saved && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(saved)) return saved.toLowerCase();
+    const id = crypto.randomUUID();
+    localStorage.setItem(REPORTER_STORAGE_KEY, id);
+    return id;
+  };
+  if (navigator.locks) return navigator.locks.request(REPORTER_STORAGE_KEY, getOrCreate);
+  return getOrCreate();
+}
 
 const form = document.getElementById("report-form");
 const authForm = document.getElementById("auth-form");
@@ -407,12 +420,19 @@ function buildReportFromForm() {
     beach_location: document.getElementById("beach_location").value.trim().toLowerCase(),
     clientReportId: crypto.randomUUID(),
     createdAtClient: Date.now(),
+    observedAt: Date.now(),
   };
 }
 
 async function handleSubmit(event) {
   event.preventDefault();
-  const report = buildReportFromForm();
+  let report;
+  try {
+    report = { ...buildReportFromForm(), reporterBrowserId: await getReporterBrowserId() };
+  } catch (err) {
+    log(`report could not be saved: ${String(err)}`);
+    return;
+  }
 
   if (!Array.isArray(report.lik_codes) || report.lik_codes.length === 0) {
     log("submit blocked: lik_codes is empty");
